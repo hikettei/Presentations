@@ -484,6 +484,7 @@ frame 12/12  [■■■■■■■■■■■■]
 
 適当に図を持ってくる
 - Apple M3, Intel, AMD
+- TODO: N段階の並列性
 
 <!-- cmd:end_slide -->
 
@@ -626,33 +627,52 @@ frame 12/12  [■■■■■■■■■■■■]
 
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
-
+[Part1] (7/N) GPUの特性1: Communication is expensive
+===
+TODO: 引用
+<!-- cmd:end_slide -->
+[Part1] (8/N) GPUの特性2: ALU <<< Memory
+===
+TODO: 引用
+<!-- cmd:end_slide -->
 [Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
 ===
 
-- throughput-oriented metrics:
-  - throughputの構成要素:
-    - Amount of data to be applied
-      - これを減らすには，アルゴリズムを変えるか，Quantization/Pruningなどでデータ量を減らすしかない
-    - Amount of resources to be applied (enegery, silicons) 
-    - Efficiency of applying them to useful work 
-  - FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
+前述の通り，キャッシュなどを考慮しないとGPUはパフォーマンスが出ない
 
+=> N=10^100とかまでデータが増えたら？
+=> Gemmのような，Memory-Intensiveな演算はどうする？
+
+# throughput-oriented metrics: (TODO: 引用)
+
+上記のスライドでは，throughputが関連する指標として以下があるとしている
+
+# throughput
+
+throughput = A
+
+良くB/Fやメモリ帯域幅から理論値のFLOPSを計算して，それに近づくようにプログラムを最適化したりする
+
+FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
+
+<!-- cmd:pause -->
+## Amount of data to be applied. (入力するデータの総量)
+<!-- cmd:pause -->
+これを減らすには，アルゴリズムを変えるか，Quantization/Pruningなどでデータ量を減らすしかない
+<!-- cmd:pause -->
+## Amount of resources to be applied (enegery, silicons) 
+<!-- cmd:pause -->
+お金をいっぱい投入するしかない
+<!-- cmd:pause -->
+## Efficiency of applying them to useful work
+<!-- cmd:pause -->
+=> これは，キャッシュなどを考慮した"良いプログラム"に書き換えることで改善できる。
 <!-- cmd:end_slide -->
 
-[Part2] (2/N) Perf/W 
+[Part2] (2/N) Tile
 ===
 
-- Communication is Expensive, Be Small, Be Local
-- ALU vs メモリ通信の消費電力のグラフ
-- メモリ階層のHierarchy
-- 転送速度の違い
-- チップネットワーク (NCCL Docs, Broadcast, Reduce)
-
-<!-- cmd:end_slide -->
-
-[Part2] (3/N) Tile
-===
+床のタイルとかと同じ意味
 
 要素間の依存関係, Tile操作, Polyhedral Model
 
@@ -691,7 +711,7 @@ frame 12/12  [■■■■■■■■■■■■]
 [Part3] (1/N) Deep Learning Compiler
 ======
 
-(Disclaimer: There's several approach e.g.: Halide, Tiramisu, Polyhedral Model, MLIR, E-Graph/Equality Saturation, etc...)
+(Disclaimer: この部分は本当にいろんなアプローチがあります。Halide, Tiramisu, Polyhedral Model, Tinygrad, E-Graph and Equality Saturation, etc ...)
 
 - 計算機を効率良く扱うには，二つのアプローチがある。
   - ハードウェア側を最適化する (クロック数を上げる，プロセスルール微細化，Systolic Array, ...)
@@ -717,6 +737,9 @@ unoptimized code -> [compiler] -> optimized code
   - 上記のプログラムを最適化する言語 (e.g.: 一つ目のループを並列化して，次のループをタイルして，...)
 - Example
 - 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal, XLA, 
+
+次に読むと面白いかもしれない文献
+CUDAで最高速度のGemmを書くBlog
 
 参考文献
 ======
