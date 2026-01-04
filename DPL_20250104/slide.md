@@ -21,10 +21,12 @@ options:
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) Introduction: 行列演算
+[Part1] (1/N) Introduction: 配列同士の加算
 ====
 
 # Q: 行列積を計算してみよう
+
+Note: やっぱ単純なVector addにする -> 次スライドでアニメーションでどんな感じで実行されているかをみせる，という構成でいいや
 
 ```
 A @ B = C # TODO: Use LaTeX
@@ -41,7 +43,7 @@ C = np.zeros((N, M),)
 
 <!-- cmd:pause -->
 
-### Naive Answer
+### 解答例
 
 ``` python
 for i in range(N):
@@ -50,7 +52,7 @@ for i in range(N):
       C[i*N + j] += A[i*N + k] + B[k*N + j]
 ```
 
-## 何が言いたいか
+## Pythonプログラムをよく観察してみる
 
 - 行列を計算する`add`関数というプログラムには:
   - 行列を保存するためのメモリと
@@ -60,7 +62,18 @@ for i in range(N):
 
 <!-- cmd:end_slide -->
 
-[Part1] (2/N) Introduction: データ処理を一般化してみる
+[Part1] (2/N) Introduction: 行列の加算を実際に動かしてみる
+===
+
+``` python
+(TODO: Super elegant figure)
+Animationに，S1の座標，メモリの状態，ALUみたいなのを逐一保存してみる
+画面下部にYoutube seekbarみたいなの作って，tが進んでいるというのをわかりやすく
+```
+
+<!-- cmd:end_slide -->
+
+[Part1] (3/N) Introduction: データ処理
 ====
 
 ``` python
@@ -94,8 +107,14 @@ for i in range(N):
 
 <!-- cmd:end_slide -->
 
-[Part1] (3/N) Introduction: 深層学習と配列操作
+[Part1] (4/N) Introduction: 深層学習におけるデータ処理
 ====
+
+深層学習でよくやる計算
+
+- Conv2D (Einsum Definition)
+- Pool2d (Einsum Definition)
+- FlashAttention (Einsum Definition)
 
 (TODO: テーブル形式にする？)
 データ型，メモリアクセス，アルゴリズム，Offline/Onlineくらいの違いのテーブル
@@ -106,61 +125,34 @@ for i in range(N):
 
 多分，SQLやTransactionより，ずっと単純なデータ処理を考えていると思う
 
-(e.g.: Conv2D, Pool2D, FlashAttention)
-
 - 流れるデータ量は，事前にわかっている (Offine Optimization)
 - Deep Learningの場合，メモリアクセスパターンはとっても単純
 - メモリアクセス: Elementwise, Broadcast, ReduceOpsしかない (c.f.: NCCL Docs)
 - WMMA (積和演算)を高速化するかばっかり考えている
+- => いい感じの数学モデルを作れそう！(後で定義する)
+- (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
 
 <!-- cmd:end_slide -->
 
-[Part1] (3/N) Introduction: 深層学習のための大規模データ処理
-====
+[Part1] (5/N) Introduction: CPU/GPU
+
+適当に図を持ってくる
+- Apple M3, Intel, AMD
+
 
 <!-- cmd:end_slide -->
 
-- 手動でいっぱいコマを作って，or macroでアニメーション作れないかな？
-- How do you add two arrays? [1, 2, 3, 4] + [1, 2, 3, 4] これを最初に挟む
-- Animationに，S1の座標，メモリの状態，ALUみたいなのを逐一保存してみる
-- 画面下部にYoutube seekbarみたいなの作って，tが進んでいるというのをわかりやすく
-- TUIを用いて画面いっぱいに表示する？
-- 二重ループ，matmulの方がわかりやすいかも
-- Note
-  - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
-  - https://pliss2019.github.io/albert_cohen_slides.pdf
-(TODO: 話す内容を整理する，AAを用いて，処理したいデータ -> 処理 -> 処理されたデータのWorkflowをはっきりさせる)
-
-- ここで存在するものは何か:
-  - データ: リスト，Contiguous Array, Random Access? Affine Access? (TODO: Affine Accessである根拠のスライドを持ってくる)
-  - 処理で行う計算は，MLIRのような中間表現を用いて処理する。
-
-大規模なデータを扱うことは重要！
-
-(Note: Attentionの回もそうだけど，なぜ現代でHPCが重要な技術とみなされているかをaudienceに納得させてから話したい)
-
-これまでのデータベースのような話と同じで
-
-Deep Learningは，巨大なデータがあって，それに対する処理があって，それを高速化するというのを考える。
-
-Transactionとかと話は似ている
-
-Deep Learningで実施する大規模データ処理の問題設定をはっきりさせる せっかくならこれまでのスライドと親和性を持たせる
-
-(余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
-
-<!-- cmd:end_slide -->
-
-[Part1] (4/N) simple vector computer
+[Part1] (6/N) 計算機のアーキテクチャ
 ======
 
-(Disclaimer: 僕はプロの半導体屋さんではありません!)
+(Disclaimer: 僕はプロの半導体屋さんではありません！)
 
 計算機を構成する要素は，僕は以下の三つだと考えている。
 
 (TODO: 左ペインにAAを表示)
 
 - メモリ (VRAM/SRAM, ...)
+  - サイズN byte, 通信速度 X/s, 消費電力 aW
 
 <!-- cmd:pause -->
 
@@ -172,18 +164,7 @@ Deep Learningで実施する大規模データ処理の問題設定をはっき�
 
 <!-- cmd:end_slide -->
 
-[Part1] (3/N) GPUがどうなってるか
-======
-
-(ここで，　GPU全体像の図を作る？わんちゃん飛ばしたほうがわかりやすいかも)
-
-CPUからデータを持ってくる，CUDAはGPU launch overheadがある
-Grid/Block Levelでの並列化
-Warp levelでの並列化
-
-<!-- cmd:end_slide -->
-
-[Part2] (1/N) 計算機を効率良く扱うにはどうしたらいいか
+[Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
 ===
 
 - throughput-oriented metrics:
@@ -274,8 +255,10 @@ unoptimized code -> [compiler] -> optimized code
 - Example
 - 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal, XLA, 
 
-
-Awknoledgements
+参考文献
 ======
 - https://microarch.org/micro52/media/dally_keynote.pdf
+- https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
+- https://pliss2019.github.io/albert_cohen_slides.pdf
+
 <!-- cmd:end_slide -->
