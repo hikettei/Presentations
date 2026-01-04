@@ -38,7 +38,7 @@ Transactionとかと話は似ている
 
 <!-- cmd:end_slide -->
 
-[Part1] (2/N) 計算機のアーキテクチャ
+[Part1] (2/N) 計算機
 ======
 
 (Disclaimer: 僕はプロの半導体屋さんではありません!)
@@ -79,17 +79,27 @@ Warp levelでの並列化
 [Part2] (1/N) 計算機を効率良く扱うにはどうしたらいいか
 ===
 
-- FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
+- throughput-oriented metrics:
+  - FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
 - ALU vs メモリ通信の消費電力のグラフ
 - メモリ階層のHierarchy
 - 転送速度の違い
+- Broadcast, Reduce (大体チップ ~ Multi GPUの段階で同じようなパターンの通信がある)
 
 <!-- cmd:end_slide -->
 
-[Part2] (2/N) Tile
+[Part2] (2/N) Perf/W 
+
+- ALU vs メモリ通信の消費電力のグラフ
+
 ===
 
-Tile操作, Polyhedral Model
+<!-- cmd:end_slide -->
+
+[Part2] (3/N) Tile
+===
+
+要素間の依存関係, Tile操作, Polyhedral Model
 
 - 1000あるデータを100人で分割して同時に作業する (=重要な操作，Tileの定義)
 - 集約(aggregation)する
@@ -101,6 +111,9 @@ Tile操作, Polyhedral Model
 - SIMD
 - Thread/Block Level Parallel
 - Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
+
+=> メモリアクセスの依存関係 (RaW/WaW/WaR)
+=> スケジュールの合法性 (legality)
 
 References
 ======
