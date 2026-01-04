@@ -24,9 +24,15 @@ options:
 [Part1] (1/N) 行列演算の重要性
 =======
 
+(TODO: 話す内容を整理する，AAを用いて，処理したいデータ -> 処理 -> 処理されたデータのWorkflowをはっきりさせる)
+
+- ここで存在するものは何か:
+  - データ: リスト，Contiguous Array, Random Access? Affine Access?
+  - 処理で行う計算は，MLIRのような中間表現を用いて処理する。
+
 大規模なデータを扱うことは重要！
 
-(Note: Attentionの回もそうだけど，なぜこれが重要かという話を最初に持ってくる)
+(Note: Attentionの回もそうだけど，なぜ現代でHPCが重要な技術とみなされているかをaudienceに納得させてから話したい)
 
 これまでのデータベースのような話と同じで
 
@@ -68,7 +74,7 @@ out = A + B
 [Part1] (3/N) GPUがどうなってるか
 ======
 
-(ここで，　GPU全体像の図を作る)
+(ここで，　GPU全体像の図を作る？わんちゃん飛ばしたほうがわかりやすいかも)
 
 CPUからデータを持ってくる，CUDAはGPU launch overheadがある
 Grid/Block Levelでの並列化
@@ -80,19 +86,22 @@ Warp levelでの並列化
 ===
 
 - throughput-oriented metrics:
+  - throughputの構成要素:
+    - Algorithm
+    - Amount of resources to be applied (enegery, silicons)
+    - Efficiency of applying them to useful work 
   - FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
-- ALU vs メモリ通信の消費電力のグラフ
-- メモリ階層のHierarchy
-- 転送速度の違い
-- Broadcast, Reduce (大体チップ ~ Multi GPUの段階で同じようなパターンの通信がある)
 
 <!-- cmd:end_slide -->
 
 [Part2] (2/N) Perf/W 
-
-- ALU vs メモリ通信の消費電力のグラフ
-
 ===
+
+- Communication is Expensive, Be Small, Be Local
+- ALU vs メモリ通信の消費電力のグラフ
+- メモリ階層のHierarchy
+- 転送速度の違い
+- チップネットワーク (NCCL Docs, Broadcast, Reduce)
 
 <!-- cmd:end_slide -->
 
@@ -107,13 +116,48 @@ Warp levelでの並列化
 - 実際は
 - 10000件あるデータを(a1, a2, ..., a100)さんで100分割して，一人当たり100件作業する = (block, thread) = (100, 100)
 - (a1, a2, ..., a100)さんはそれを下請け業者(b1, b2)に業務委託する = WarpLevel
-- Parallel
-- SIMD
-- Thread/Block Level Parallel
+- Sections
+  - Parallelize
+  - SIMD (Single Instruction Multiple Data)
+  - Thread/Block Level Parallelism
 - Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
 
+ここから抽出されたGPU Kernelの要素
 => メモリアクセスの依存関係 (RaW/WaW/WaR)
 => スケジュールの合法性 (legality)
+=> スケジュールの並列性 (coincidence)
+
+- Parallelize
+  - (TODO: Polyhedral Modelで図を作成する)
+  - 合法である条件
+- Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
+  - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
+
+<!-- cmd:end_slide -->
+[Part3] (1/N) Deep Learning Compiler
+======
+
+(Disclaimer: There's several approach e.g.: Halide, Polyhedral Model, MLIR, E-Graph/Equality Saturation, etc...)
+
+- 計算機を効率良く扱うには，二つのアプローチがある。
+  - ハードウェア側を最適化する (クロック数を上げる，プロセスルール微細化，Systolic Array, ...)
+  - ソフトウェア側を最適化する (前述の最適化をうまく使ったコードを生成する)
+- 自分はソフトウェア側を最適化したいと思った。
+- Compiler:
+``` python
+
+unoptimized code -> [compiler] -> optimized code
+    ↑                                  ↑
+    ------------------------------------
+     Problem: この過程で，コードが正しいことをどうやって保証するか？
+```
+<!-- cmd:end_slide -->
+
+[Part3] (2/N) Schedule and Algoritm Separation, DSL
+===
+- 二つのプログラミング言語に分割する:
+  - 実行したい計算を数学的に記述するためのプログラミング言語
+  - ↑のプログラムを，最適化するためのプログラミング言語
 
 References
 ======
