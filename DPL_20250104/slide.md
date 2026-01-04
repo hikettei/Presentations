@@ -21,45 +21,47 @@ options:
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) Introduction: 配列同士の加算
+[Part1] (1/N) Introduction: 配列操作
 ====
 
-# Q: 行列積を計算してみよう
+# 行列の要素ごとの加算を丁寧に考えてみる
 
-Note: やっぱ単純なVector addにする -> 次スライドでアニメーションでどんな感じで実行されているかをみせる，という構成でいいや
+Q: 2x2行列`A, B`について，`A[i, j] + B[i, j]`を計算し，その結果を`C[i, j]`に保存するプログラムを考える
 
-```
-A @ B = C # TODO: Use LaTeX
-```
+<!-- cmd:pause -->
 
 ``` python
-import numpy as np
-N, K, M = 4, 4, 4
-A = np.random.randn(N, K)
-B = np.random.randn(K, M)
-C = np.zeros((N, M),)
-# A @ B = C ?
+# Inputs
+A = [[1, 2], [3, 4]]
+B = [[4, 3], [2, 1]]
+C = [[0, 0], [0, 0]]
 ```
 
 <!-- cmd:pause -->
 
-### 解答例
+# 実装例
 
 ``` python
-for i in range(N):
-  for j in range(M):
-    for k in range(K):
-      C[i*N + j] += A[i*N + k] + B[k*N + j]
+for i in range(2):
+  for j in range(2):
+    C[i, j] = A[i, j] + B[i, j]
+# print(C) -> [[5, 5], [5, 5]]
 ```
+
+<!-- cmd:pause -->
 
 ## Pythonプログラムをよく観察してみる
 
-- 行列を計算する`add`関数というプログラムには:
-  - 行列を保存するためのメモリと
-  - 行列をどういった順番で読むかと
-  - `+`演算を実行するためのALUがあるはず 
-  - が概念として存在する
-
+- 合計で`2 * 2 = 4`回，計算を実行する `S(i, j)`
+- 各Statement `S(i, j)`において，こういうことをやってそう！
+<!-- cmd:pause -->
+  1. `A[i, j]`をメモリからレジスタaへロードする
+<!-- cmd:pause -->
+  2. `B[i, j]`をメモリからレジスタbへロードする
+<!-- cmd:pause -->
+  3. `a+b`を計算する
+<!-- cmd:pause -->
+  4. (3.)の実行結果を，`C[i, j]`へ保存する
 <!-- cmd:end_slide -->
 
 [Part1] (2/N) Introduction: 行列の加算を実際に動かしてみる
