@@ -1,0 +1,91 @@
+extends: tokyonight-storm
+
+palette:
+  colors:
+    bg: "1a1b26"
+    fg: "c0caf5"
+    muted: "565f89"
+    accent: "7aa2f7"
+    accent2: "bb9af7"
+    ok: "9ece6a"
+    warn: "e0af68"
+    bad: "f7768e"
+    code_bg: "24283b"
+  classes:
+    emph:
+      foreground: "p:accent"
+    subtle:
+      foreground: "p:muted"
+    ok:
+      foreground: "p:ok"
+    warn:
+      foreground: "p:warn"
+    bad:
+      foreground: "p:bad"
+    code:
+      foreground: "p:fg"
+      background: "p:code_bg"
+
+default:
+  margin:
+    percent: 7
+  colors:
+    foreground: "p:fg"
+    background: "p:bg"
+
+intro_slide:
+  footer: false
+  title:
+    alignment: center
+    font_size: 2
+    colors:
+      foreground: "p:accent"
+  sub_title:
+    alignment: center
+    colors:
+      foreground: "p:muted"
+  author:
+    alignment: center
+    positioning: page_bottom
+    colors:
+      foreground: "p:muted"
+
+footer:
+  style: template
+  right: "<span class=\"subtle\">{current_slide} / {total_slides}</span>"
+  height: 2
+  colors:
+    foreground: "p:muted"
+    background: "p:bg"
+
+slide_title:
+  alignment: center
+  font_size: 2
+  padding_top: 1
+  padding_bottom: 1
+  separator: true
+  colors:
+    foreground: "p:accent"
+
+headings:
+  h1:
+    prefix: "▌"
+    font_size: 2
+    colors:
+      foreground: "p:accent2"
+  h2:
+    prefix: "▍"
+    colors:
+      foreground: "p:accent"
+
+code:
+  alignment: center
+  theme_name: base16-mocha.dark
+  padding:
+    horizontal: 2
+    vertical: 1
+  minimum_margin:
+    percent: 6
+
+block_quote:
+  prefix: "▍ "
