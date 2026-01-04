@@ -27,7 +27,7 @@ options:
 (TODO: 話す内容を整理する，AAを用いて，処理したいデータ -> 処理 -> 処理されたデータのWorkflowをはっきりさせる)
 
 - ここで存在するものは何か:
-  - データ: リスト，Contiguous Array, Random Access? Affine Access?
+  - データ: リスト，Contiguous Array, Random Access? Affine Access? (TODO: Affine Accessである根拠のスライドを持ってくる)
   - 処理で行う計算は，MLIRのような中間表現を用いて処理する。
 
 大規模なデータを扱うことは重要！
@@ -127,9 +127,16 @@ Warp levelでの並列化
 => スケジュールの合法性 (legality)
 => スケジュールの並列性 (coincidence)
 
+(Note: 以下に主要なループ変形を列挙して説明する)
+- Loop Interchange
 - Parallelize
   - (TODO: Polyhedral Modelで図を作成する)
   - 合法である条件
+- TileGPU
+  - GPU Block/Thread
+- SIMD (Strip-Mine)
+- Loop Coalesce
+- Tile
 - Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
   - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
 
@@ -158,8 +165,11 @@ unoptimized code -> [compiler] -> optimized code
 - 二つのプログラミング言語に分割する:
   - 実行したい計算を数学的に記述するためのプログラミング言語
   - ↑のプログラムを，最適化するためのプログラミング言語
+- Example
+- 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal
 
-References
+
+Awknoledgements
 ======
 - https://microarch.org/micro52/media/dally_keynote.pdf
 <!-- cmd:end_slide -->
