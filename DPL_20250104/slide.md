@@ -642,6 +642,8 @@ TODO: 引用
 
 => N=10^100とかまでデータが増えたら？
 => Gemmのような，Memory-Intensiveな演算はどうする？
+=> 一回のALUを呼び出すのにSSDから10回呼び出す
+=> 一回のALUを呼び出すのにL3から10回呼び出す
 
 # throughput-oriented metrics: (TODO: 引用)
 
@@ -667,12 +669,14 @@ FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演
 ## Efficiency of applying them to useful work
 <!-- cmd:pause -->
 => これは，キャッシュなどを考慮した"良いプログラム"に書き換えることで改善できる。
+=> 計算の意味を変えず，導線だけを変える"Loop Transformation"という考え方を使う
 <!-- cmd:end_slide -->
 
 [Part2] (2/N) Tile
 ===
 
-床のタイルとかと同じ意味
+- 床のタイルとかと同じ意味
+- 100x100の長方形は，10x10のタイル100枚敷き詰めている
 
 要素間の依存関係, Tile操作, Polyhedral Model
 
@@ -682,32 +686,47 @@ FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演
 - 実際は
 - 10000件あるデータを(a1, a2, ..., a100)さんで100分割して，一人当たり100件作業する = (block, thread) = (100, 100)
 - (a1, a2, ..., a100)さんはそれを下請け業者(b1, b2)に業務委託する = WarpLevel
-- Sections
-  - Parallelize
-  - SIMD (Single Instruction Multiple Data)
-  - Thread/Block Level Parallelism
 - Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
-- Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ？)
 
 ここから抽出されたGPU Kernelの要素
 => メモリアクセスの依存関係 (RaW/WaW/WaR)
 => スケジュールの合法性 (legality)
 => スケジュールの並列性 (coincidence)
 
-(Note: 以下に主要なループ変形を列挙して説明する)
-- Loop Interchange
-- Parallelize
-  - (TODO: Polyhedral Modelで図を作成する)
-  - 合法である条件
-- TileGPU
-  - GPU Block/Thread
-- SIMD (Strip-Mine)
-- Loop Coalesce
-- Tile
-- Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
-  - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
+<!-- cmd:end_slide -->
+[Part2] (3/N) 並列化 (Loop Parallelize for CPU)
+===
+(TODO: Polyhedral Compilerを用いて説明する)
+<!-- cmd:end_slide -->
+
+[Part2] (4/N) 並列化 (Loop Parallelize for GPU)
+===
 
 <!-- cmd:end_slide -->
+
+[Part2] (5/N) 並列化 (Strip-Mine, SIMD)
+===
+TensorCore: 4x4 TileとかでA@B=Cを計算する
+<!-- cmd:end_slide -->
+[Part2] (6/N) Memory Locality効率化 (Loop Coalesce)
+===
+<!-- cmd:end_slide -->
+[Part2] (7/N) Memory Locality効率化 (Tiling)
+===
+<!-- cmd:end_slide -->
+[Part2] (8/N) Memory Locality効率化 (Interchange)
+===
+<!-- cmd:end_slide -->
+[Part3] (9/N) Memory Locality効率化 (Loop Fusion)
+===
+- Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
+  - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
+<!-- cmd:end_slide -->
+[Part3] (10/N) Memory Locality効率化 (Loop Skewing)
+===
+- Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ)
+<!-- cmd:end_slide -->
+
 [Part3] (1/N) Deep Learning Compiler
 ======
 
@@ -740,6 +759,11 @@ unoptimized code -> [compiler] -> optimized code
 
 次に読むと面白いかもしれない文献
 CUDAで最高速度のGemmを書くBlog
+<!-- cmd:end_slide -->
+[Part3] (2/N) Conclusion? HalideでGemmを書いてみる
+===
+
+<!-- cmd:end_slide -->
 
 参考文献
 ======
