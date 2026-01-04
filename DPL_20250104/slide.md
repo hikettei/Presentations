@@ -17,7 +17,7 @@ options:
   - Part1: **10分** 前提用語の整理・高性能計算 推論チップの構成など (Background)
   - Part2: **10分** 計算機をうまく使うにはどうしたらいいかの話
   - Part3: **10分** Deep Learning Compiler (Halide or Polyhedral Compiler)
-- サンプルコードはここに置いています: https://github.com/hikettei/tiny_polyhedral_compiler/blob/main/examples/polyhedral_compiler.ipynb
+- 実際にコード動かして遊びたい人へ: https://github.com/hikettei/tiny_polyhedral_compiler/blob/main/examples/polyhedral_compiler.ipynb
 
 <!-- cmd:end_slide -->
 
@@ -86,7 +86,7 @@ Warp levelでの並列化
 
 <!-- cmd:end_slide -->
 
-GPUをどうやって効率的に扱う？
+[Part2] (2/N) Tile
 ===
 
 Tile操作, Polyhedral Model
@@ -100,6 +100,7 @@ Tile操作, Polyhedral Model
 - Parallel
 - SIMD
 - Thread/Block Level Parallel
+- Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
 
 References
 ======
