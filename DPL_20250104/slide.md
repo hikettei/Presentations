@@ -40,20 +40,48 @@ C = [[0, 0], [0, 0]]
 <!-- cmd:pause -->
 
 # 実装例
+<!-- cmd:column_layout: [2, 2, 1] -->
+<!-- cmd:column: 0 -->
 
-``` python
+### Program
+
+```python
 for i in range(2):
   for j in range(2):
     C[i, j] = A[i, j] + B[i, j]
 # print(C) -> [[5, 5], [5, 5]]
+````
+
+<!-- cmd:column: 1 -->
+
+### Schedule
+
+```python
+for i in range(2):
+  for j in range(2):
+    print(f"S({i}, {j})")
 ```
+
+<!-- cmd:column: 2 -->
+
+### Timestamp
+
+```text
+t=0 | S(0, 0)
+t=1 | S(0, 1)
+t=2 | S(1, 0)
+t=3 | S(1, 1)
+```
+
+<!-- cmd:reset_layout -->
 
 <!-- cmd:pause -->
 
 ## Pythonプログラムをよく観察してみる
 
-- 合計で`2 * 2 = 4`回，計算を実行する `S(i, j)`
-- 各Statement `S(i, j)`において，こういうことをやってそう！
+- 合計で`2 * 2 = 4`回，計算を実行する `S(i, j): S(0, 0) -> S(0, 1) -> S(1, 0) -> S(1, 1)`
+<!-- cmd:pause -->
+- 各Statement `S(i, j)`において，こういうことをやってそう:
 <!-- cmd:pause -->
   1. `A[i, j]`をメモリからレジスタaへロードする
 <!-- cmd:pause -->
@@ -98,14 +126,17 @@ Animationに，S1の座標，メモリの状態，ALUみたいなのを逐一保
             k = g(i)
 ```
 
-- Data Processing in general:
-  - `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
-    - データ型 (e.g.: 小数点，文字列, Boolean)
-  - `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
-    - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
-    - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
-    - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
-  - `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`)
+# Data Processing in general
+  
+- `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
+  - データ型 (e.g.: 小数点，文字列, Boolean)
+<!-- cmd:pause -->
+- `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
+  - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
+  - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
+  - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
+<!-- cmd:pause -->
+- `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`)
 
 <!-- cmd:end_slide -->
 
