@@ -14,9 +14,9 @@ options:
 ======
 
 - 合計持ち時間: 30分
-  - Part1: **10分** 前提用語の整理・高性能計算 推論チップの構成など (Background)
+  - Part1: **10分** Introduction: 深層学習のための大規模データ処理
   - Part2: **10分** 計算機をうまく使うにはどうしたらいいかの話
-  - Part3: **10分** Deep Learning Compiler (Halide or Polyhedral Compiler)
+  - Part3: **10分** Deep Learning Compiler in general
 - 実際にコード動かして遊びたい人へ: https://github.com/hikettei/tiny_polyhedral_compiler/blob/main/examples/polyhedral_compiler.ipynb
 
 <!-- cmd:end_slide -->
@@ -24,8 +24,35 @@ options:
 [Part1] (1/N) Introduction: 深層学習のための大規模データ処理
 ====
 
-- DISK[f(i)]
-- ディスクから，`f(i)`番目のデータを取ってくる
+``` python
+╭────────────── algorithm ─────────────╮
+│ y = f( DATA1[ g(i) ] , DATA2[ g(j) ])│
+╰───▲───────────▲───────────▲──────────╯
+    │           │           │
+    │           │           └─ data2 (tensor / memory), accessed at g(j)
+    │           └───────────── data1 (tensor / memory), accessed at g(i)
+    └───────────────────────── f : algorithm to apply
+```
+
+``` python
+[DATA]
+╭──────────── memory / tensor ────────────╮
+│ Addr : 0   1   2   3   4   5   …        │
+│ Val  : x0  x1  x2  x3  x4  x5  …        │
+╰─────────────────────────────────────────╯
+               ▲
+            k = g(i)
+```
+
+- Data Processing in general:
+  - `DATA`: 計算したいデータがある (e.g.: Parameter Weight, 口座残高，年齢，etc ...)
+    - データ型 (e.g.: 小数点，文字列, Boolean)
+  - `g(i)`: メモリアクセス (e.g.: ランダムアクセス，規則的)
+    - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
+    - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: Source)
+    - (注: Quasiaffine = Pressburger, 簡単な演算だけで表記できる！+と*)
+  - `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `scan`)
+- アニメーション作れないかな？
 - Note
   - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
   - https://pliss2019.github.io/albert_cohen_slides.pdf
