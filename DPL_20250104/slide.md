@@ -2,7 +2,7 @@
 title: "High Performance Computing for Deep Learning (行列演算ポエム)"
 sub_title: "川島研究会 発表資料"
 authors:
-  - "小田 悠真 (環境情報B1)"
+  - "小田 悠真 (慶應義塾大学 環境情報学部 B1)"
 date: "2026-01-06"
 theme:
   path: ./../hikettei_style.yaml
@@ -10,18 +10,54 @@ options:
   command_prefix: "cmd:"
 ---
 
-お品書き
+発表構成
 ======
 
 - 合計持ち時間: 30分
   - Part1: **10分** Introduction: 深層学習のための大規模データ処理
-  - Part2: **10分** 計算機をうまく使うにはどうしたらいいかの話
-  - Part3: **10分** Deep Learning Compiler in general
+  - Part2: **10分** Background: 計算機を効率良く使うにはどうしたらいいか
+  - Part3: **10分** Advanced: Deep Learning Compiler
 - 実際にコード動かして遊びたい人へ: https://github.com/hikettei/tiny_polyhedral_compiler/blob/main/examples/polyhedral_compiler.ipynb
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) Introduction: 深層学習のための大規模データ処理
+[Part1] (1/N) Introduction: 行列演算
+====
+
+# 行列積を計算しよう
+
+```
+A @ B = C # TODO: Use LaTeX
+```
+
+``` python
+import numpy as np
+A = np.random.randn(N, K)
+B = np.random.randn(K, M)
+C = np.zeros((N, M),)
+# A @ B = C ?
+```
+
+<!-- cmd:pause -->
+
+``` python
+for i in range(N):
+  for j in range(M):
+    for k in range(K):
+      C[i*N + j] += A[i*N + k] + B[k*N + j]
+```
+
+## 何が言いたいか
+
+- 行列を計算する`add`関数というプログラムには:
+  - 行列を保存するためのメモリと
+  - 行列をどういった順番で読むかと
+  - `+`演算を実行するためのALUがあるはず 
+  - が概念として存在する
+
+<!-- cmd:end_slide -->
+
+[Part1] (2/N) Introduction: データ処理を一般化してみる
 ====
 
 ``` python
@@ -45,19 +81,51 @@ options:
 ```
 
 - Data Processing in general:
-  - `DATA`: 計算したいデータがある (e.g.: Parameter Weight, 口座残高，年齢，etc ...)
+  - `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
     - データ型 (e.g.: 小数点，文字列, Boolean)
-  - `g(i)`: メモリアクセス (e.g.: ランダムアクセス，規則的)
+  - `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
     - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
-    - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: Source)
-    - (注: Quasiaffine = Pressburger, 簡単な演算だけで表記できる！+と*)
-  - `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `scan`)
-- アニメーション作れないかな？
+    - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
+    - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
+  - `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`)
+
+<!-- cmd:end_slide -->
+
+[Part1] (3/N) Introduction: 深層学習と配列操作
+====
+
+(TODO: テーブル形式にする？)
+データ型，メモリアクセス，アルゴリズム，Offline/Onlineくらいの違いのテーブル
+
+- データ処理 everywhere
+
+## Data Processing in Deep Learning
+
+多分，SQLやTransactionより，ずっと単純なデータ処理を考えていると思う
+
+(e.g.: Conv2D, Pool2D, FlashAttention)
+
+- 流れるデータ量は，事前にわかっている (Offine Optimization)
+- Deep Learningの場合，メモリアクセスパターンはとっても単純
+- メモリアクセス: Elementwise, Broadcast, ReduceOpsしかない (c.f.: NCCL Docs)
+- WMMA (積和演算)を高速化するかばっかり考えている
+
+<!-- cmd:end_slide -->
+
+[Part1] (3/N) Introduction: 深層学習のための大規模データ処理
+====
+
+<!-- cmd:end_slide -->
+
+- 手動でいっぱいコマを作って，or macroでアニメーション作れないかな？
+- How do you add two arrays? [1, 2, 3, 4] + [1, 2, 3, 4] これを最初に挟む
+- Animationに，S1の座標，メモリの状態，ALUみたいなのを逐一保存してみる
+- 画面下部にYoutube seekbarみたいなの作って，tが進んでいるというのをわかりやすく
+- TUIを用いて画面いっぱいに表示する？
+- 二重ループ，matmulの方がわかりやすいかも
 - Note
   - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
   - https://pliss2019.github.io/albert_cohen_slides.pdf
-- **DATA** to be applied
-- **Algorithm** to apply
 (TODO: 話す内容を整理する，AAを用いて，処理したいデータ -> 処理 -> 処理されたデータのWorkflowをはっきりさせる)
 
 - ここで存在するものは何か:
@@ -80,16 +148,10 @@ Deep Learningで実施する大規模データ処理の問題設定をはっき�
 
 <!-- cmd:end_slide -->
 
-[Part1] (2/N) 計算機
+[Part1] (4/N) simple vector computer
 ======
 
 (Disclaimer: 僕はプロの半導体屋さんではありません!)
-
-``` python
-A = [1, 2, 3, 4]
-B = [1, 2, 3, 4]
-out = A + B
-```
 
 計算機を構成する要素は，僕は以下の三つだと考えている。
 
@@ -200,9 +262,12 @@ unoptimized code -> [compiler] -> optimized code
 
 [Part3] (2/N) Schedule and Algoritm Separation, DSL
 ===
+
+- よくないやり方？:
+  - 一つのプログラミング言語で，計算の意味と最適化を両方一気にやる 
 - 二つのプログラミング言語に分割する:
-  - 実行したい計算を数学的に記述するためのプログラミング言語
-  - ↑のプログラムを，最適化するためのプログラミング言語
+  - 計算の意味を記述する言語 (e.g.: AとBの行列積を取って，sigmoid関数を適用して。。。)
+  - 上記のプログラムを最適化する言語 (e.g.: 一つ目のループを並列化して，次のループをタイルして，...)
 - Example
 - 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal, XLA, 
 
