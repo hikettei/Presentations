@@ -24,7 +24,7 @@ options:
 [Part1] (1/N) Introduction: 行列演算
 ====
 
-# 行列積を計算しよう
+# Q: 行列積を計算してみよう
 
 ```
 A @ B = C # TODO: Use LaTeX
@@ -32,6 +32,7 @@ A @ B = C # TODO: Use LaTeX
 
 ``` python
 import numpy as np
+N, K, M = 4, 4, 4
 A = np.random.randn(N, K)
 B = np.random.randn(K, M)
 C = np.zeros((N, M),)
@@ -39,6 +40,8 @@ C = np.zeros((N, M),)
 ```
 
 <!-- cmd:pause -->
+
+### Naive Answer
 
 ``` python
 for i in range(N):
