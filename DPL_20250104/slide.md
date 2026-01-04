@@ -1,5 +1,5 @@
 ---
-title: "Introduction to High Performance Computing (行列演算ポエム)"
+title: "High Performance Computing for Deep Learning (行列演算ポエム)"
 sub_title: "川島研究会 発表資料"
 authors:
   - "小田 悠真 (環境情報B1)"
@@ -21,9 +21,16 @@ options:
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) 行列演算の重要性
-=======
+[Part1] (1/N) Introduction: 深層学習のための大規模データ処理
+====
 
+- DISK[f(i)]
+- ディスクから，`f(i)`番目のデータを取ってくる
+- Note
+  - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
+  - https://pliss2019.github.io/albert_cohen_slides.pdf
+- **DATA** to be applied
+- **Algorithm** to apply
 (TODO: 話す内容を整理する，AAを用いて，処理したいデータ -> 処理 -> 処理されたデータのWorkflowをはっきりさせる)
 
 - ここで存在するものは何か:
@@ -39,6 +46,8 @@ options:
 Deep Learningは，巨大なデータがあって，それに対する処理があって，それを高速化するというのを考える。
 
 Transactionとかと話は似ている
+
+Deep Learningで実施する大規模データ処理の問題設定をはっきりさせる せっかくならこれまでのスライドと親和性を持たせる
 
 (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
 
@@ -87,8 +96,9 @@ Warp levelでの並列化
 
 - throughput-oriented metrics:
   - throughputの構成要素:
-    - Algorithm
-    - Amount of resources to be applied (enegery, silicons)
+    - Amount of data to be applied
+      - これを減らすには，アルゴリズムを変えるか，Quantization/Pruningなどでデータ量を減らすしかない
+    - Amount of resources to be applied (enegery, silicons) 
     - Efficiency of applying them to useful work 
   - FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
 
@@ -121,6 +131,7 @@ Warp levelでの並列化
   - SIMD (Single Instruction Multiple Data)
   - Thread/Block Level Parallelism
 - Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
+- Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ？)
 
 ここから抽出されたGPU Kernelの要素
 => メモリアクセスの依存関係 (RaW/WaW/WaR)
@@ -144,7 +155,7 @@ Warp levelでの並列化
 [Part3] (1/N) Deep Learning Compiler
 ======
 
-(Disclaimer: There's several approach e.g.: Halide, Polyhedral Model, MLIR, E-Graph/Equality Saturation, etc...)
+(Disclaimer: There's several approach e.g.: Halide, Tiramisu, Polyhedral Model, MLIR, E-Graph/Equality Saturation, etc...)
 
 - 計算機を効率良く扱うには，二つのアプローチがある。
   - ハードウェア側を最適化する (クロック数を上げる，プロセスルール微細化，Systolic Array, ...)
@@ -166,7 +177,7 @@ unoptimized code -> [compiler] -> optimized code
   - 実行したい計算を数学的に記述するためのプログラミング言語
   - ↑のプログラムを，最適化するためのプログラミング言語
 - Example
-- 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal
+- 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal, XLA, 
 
 
 Awknoledgements
