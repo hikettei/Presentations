@@ -416,32 +416,8 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 - (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
 
 <!-- cmd:end_slide -->
-
-<!-- cmd:end_slide -->
 [Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
 ===
-
-## FLOP
-## B/F (Bytes per FLOPS)
-
-``` python
-for i in range(N):
-  a, b = A[i], B[i] # 16 byte load
-  tmp = a + b       # 1  FLOP
-  out[i] = tmp      # 8  byte store
-```
-
-### プログラムの要求 B/F
-
-- B/F = 24/1 = 24
-
-### ハードウェアのB/F
-
-- 高々0.5とか？
-
-# throughput-oriented metrics: (TODO: 引用)
-
-上記のスライドでは，throughputが関連する指標として以下があるとしている
 
 # throughput
 
@@ -465,8 +441,29 @@ FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演
 => これは，キャッシュなどを考慮した"良いプログラム"に書き換えることで改善できる。
 => 計算の意味を変えず，導線だけを変える"Loop Transformation"という考え方を使う
 <!-- cmd:end_slide -->
+[Part2] (2/N) 計算機を効率良く扱うためにはどうしたらいいか？
+===
 
-[Part2] (2/N) Tile
+## B/F (Bytes per FLOPS)
+
+``` python
+(TODO: Replace it w/ gemm)
+for i in range(N):
+  a, b = A[i], B[i] # 16 byte load
+  tmp = a + b       # 1  FLOP
+  out[i] = tmp      # 8  byte store
+```
+
+### プログラムの要求 B/F
+
+- B/F = 24/1 = 24
+
+### ハードウェアのB/F
+
+- 高々0.5とか？
+
+<!-- cmd:end_slide -->
+[Part2] (3/N) Tile
 ===
 
 - 床のタイルとかと同じ意味
@@ -488,35 +485,35 @@ FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演
 => スケジュールの並列性 (coincidence)
 
 <!-- cmd:end_slide -->
-[Part2] (3/N) 並列化 (Loop Parallelize for CPU)
+[Part2] (4/N) 並列化 (Loop Parallelize for CPU)
 ===
 (TODO: Polyhedral Compilerを用いて説明する)
 <!-- cmd:end_slide -->
 
-[Part2] (4/N) 並列化 (Loop Parallelize for GPU)
+[Part2] (5/N) 並列化 (Loop Parallelize for GPU)
 ===
 
 <!-- cmd:end_slide -->
 
-[Part2] (5/N) 並列化 (Strip-Mine, SIMD)
+[Part2] (6/N) 並列化 (Strip-Mine, SIMD)
 ===
 TensorCore: 4x4 TileとかでA@B=Cを計算する
 <!-- cmd:end_slide -->
-[Part2] (6/N) Memory Locality効率化 (Loop Coalesce)
+[Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
 ===
 <!-- cmd:end_slide -->
-[Part2] (7/N) Memory Locality効率化 (Tiling)
+[Part2] (8/N) Memory Locality効率化 (Tiling)
 ===
 <!-- cmd:end_slide -->
-[Part2] (8/N) Memory Locality効率化 (Interchange)
+[Part2] (9/N) Memory Locality効率化 (Interchange)
 ===
 <!-- cmd:end_slide -->
-[Part3] (9/N) Memory Locality効率化 (Loop Fusion)
+[Part3] (10/N) Memory Locality効率化 (Loop Fusion)
 ===
 - Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
   - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
 <!-- cmd:end_slide -->
-[Part3] (10/N) Memory Locality効率化 (Loop Skewing)
+[Part3] (11/N) Memory Locality効率化 (Loop Skewing)
 ===
 - Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ)
 <!-- cmd:end_slide -->
@@ -556,7 +553,8 @@ CUDAで最高速度のGemmを書くBlog
 <!-- cmd:end_slide -->
 [Part3] (2/N) Conclusion? TinygradでMetal Gemmを書いてみる
 ===
-Tinykitten
+
+Tinykitten, Tinygrad BEAM Search
 <!-- cmd:end_slide -->
 
 参考文献
