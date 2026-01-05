@@ -586,6 +586,7 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
 同じことを繰り返して，{P_k} の中から一番速いものを選ぶ。
 
 ```
+
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 [Part3] (1/4) 並列計算のためのプログラミング言語 (DSL)
@@ -693,4 +694,5 @@ N = 1024; a, b = Tensor.empty(N, N), Tensor.empty(N, N);
 - https://microarch.org/micro52/media/dally_keynote.pdf
 - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
 - https://pliss2019.github.io/albert_cohen_slides.pdf
-
+- https://salykova.github.io/matmul-cpu
+- (BEAM Searchはこっち読んだ方がいいかも: https://mesozoic-egg.github.io/tinygrad-notes/20241203_beam.html)
