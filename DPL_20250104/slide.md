@@ -300,27 +300,28 @@ t=3 | S(1, 1)
 
 ``` python
 [ 1 2 3 4 5 ]
+(TODO: Slide Tile)
 g(i) -> g(i, k) = floor(i, k) + k
 ```
 
 - 前述のメモリ階層に加え，現代の計算機は並列化に関する機能を持っている。
 - 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
 - CPU/GPUにも，階層構造で並列性が存在する ([1] Polyhedral Compilation in a Nutshell, Alex Zinenko)
-
+<!-- cmd: pause -->
 ### CPU (typically 3 levels)
 
 - System threads: `n=1000`件あるデータを, n_cpu_core人で，n_cpu_core分割して，分担する。
 - Vector Level: n=250件あるデータを，`(n/simd_width)`人で，`simd_width`分割して，並列化する。(e.g.: `SIMD (Single Instruction Multiple Data)`)
 - Instruction Level: 命令レベルパイプライン Overlapを考慮してスケジュールするとか (自分は詳しくないしDL Compilerのレベルでは一般にここまでやらない)
-
+<!-- cmd: pause -->
 ## GPU (typically 2~8 level)
 
 - 3 x Threads: `n=1000`件あるデータを`block_size`人で`thread_size`分割して，分担する。
-- Warps/Vectors: SIMDなど
+- Warps/Vectors: SIMD / Warp / SIMT
 - Instruction Level: CPUのと同じ
-
 <!-- cmd:end_slide -->
-[Part1] (7/N) 計算コスト << 通信コスト
+
+[Part1] (5/N) 計算コスト << 通信コスト
 ===
 
 ```python
@@ -344,9 +345,13 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
         ↑ I-Cache Access         ↑ Register File Access                      ↑ Add
 ```
 
+- 現代のCPU/GPUは，B/F < 1.0である場合がほとんど (TODO: NVIDIA Example?)
+- つまり，高い演算性能に対して，メモリの性能が低いので，演算機がずっと遊んでいる状態
 - Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.
 
-[Part1] (3/N) Introduction: データ処理
+<!-- cmd:end_slide -->
+
+[Part1] (6/N) 並列計算のためのプログラミング言語 (DSL)
 ====
 
 ``` python
@@ -372,9 +377,9 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 # Data processing in general
 <!-- cmd:pause -->
 - `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
-  - データ型: float32 (8byte), int64 (16byte)
-  - データ量: [M, N]行列
-  - 総通信量: `データ型 * データ量`: `(M*N*size_of(float32))bytes` (e.g.: float32型のMN行列)
+  - データ型: char, float32, bfloat16, float8, int4, ...
+  - データ量: `[M, N]行列`
+  - 総データ量: `(M*N*size_of(float))bytes`
 <!-- cmd:pause -->
 - `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
   - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
@@ -385,7 +390,7 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 
 <!-- cmd:end_slide -->
 
-[Part1] (4/N) Introduction: 深層学習におけるデータ処理
+[Part1] (7/N) 並列計算のためのプログラミング言語 (DSL)
 ====
 
 前述のモデルでいうと: 深層学習の計算は超規則的で簡単である
@@ -397,20 +402,17 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 - Pool2d (Einsum Definition)
 - FlashAttention (Einsum Definition)
 
-(TODO: テーブル形式にする？)
-データ型，メモリアクセス，アルゴリズム，Offline/Onlineくらいの違いのテーブル
-
 - データ処理 everywhere
 
 ## Data Processing in Deep Learning
 
 多分，SQLやTransactionより，ずっと単純なデータ処理を考えていると思う
 
-- 流れるデータ量は，事前にわかっている (Offine Optimization)
+- 流れるデータ量は，事前にわかっている。(Offine Optimization)
+- 計算グラフは，コンパイル前に固定である (SCoP)
 - Deep Learningの場合，メモリアクセスパターンはとっても単純
-- メモリアクセス: Elementwise, Broadcast, ReduceOpsしかない (c.f.: NCCL Docs)
-- WMMA (積和演算)を高速化するかばっかり考えている
-- => いい感じの数学モデルを作れそう！(後で定義する)
+  - ほとんど全てのHPC KernelはAffineである (Paul Feautrier. 1991. Dataflow analysis of array and scalar references. Int. J. Parallel Program. 20, 1 (1991), 23ś53. https://doi.org/10.1007/ BF01407931)
+  - 経験則で言えば，99%のDeep Learning Kernelのメモリ通信はReduction, Broadcast, ElementWise
 - (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
 
 <!-- cmd:end_slide -->
