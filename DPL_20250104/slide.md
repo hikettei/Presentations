@@ -87,7 +87,7 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
   3. (3.)の実行結果を，`C[i, j]`へ保存する (4byte store)
 <!-- cmd:pause -->
-- [プログラム] - (Compile) -> [ PC(計算機) ] -> 答え
+- [プログラム(Input)] --> [ PC(計算機) ] --> [答え(Output)]
 <!-- cmd:end_slide -->
 [Part1] (2/N) 計算機 (Memory/ALU)
 ===
@@ -121,8 +121,10 @@ t=3 | S(1, 1)
 3. **STORE**: 結果をメモリへ書き戻す。(`total=size_of(float)*n_element*2`)
 <!-- cmd:pause -->
 ## FLOP, B/F比 (Bytes per FLOP)
-- FLOP=一回の浮動小数点演算の単位
-- B/F: メモリ性能 vs 演算性能
+
+- FLOP = 一回の浮動小数点演算の単位
+- B/F = メモリ性能(Bandwidth) / ALUを呼び出した回数(FLOPS)
+
 <!-- cmd:end_slide -->
 [Part1] (3/N) Modern Processor
 ====
@@ -194,6 +196,7 @@ t=3 | S(1, 1)
 ## ALU (演算装置)
 
 - Memoryから引っ張ってきた命令(e.g.: Add/Mul/Or)を，Memoryから引っ張ってきたデータに適用する装置
+- GPUだと，ALUが大量に並列に並んでたりする
 
 <!-- cmd:column: 1 -->
 
@@ -248,6 +251,7 @@ t=3 | S(1, 1)
 ## ALU (演算装置)
 
 - Memoryから引っ張ってきた命令(e.g.: Add/Mul/Or)を，Memoryから引っ張ってきたデータに適用する装置
+- GPUだと，ALUが大量に並列に並んでたりする
 
 ## チップ内ネットワーク
 
@@ -289,35 +293,7 @@ t=3 | S(1, 1)
 
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
-[Part1] (4/N) Parallelism, CPU/GPU
-===
-
-## Parallelism (並列性)
-
-``` python
-[ 1 2 3 4 5 ]
-(TODO: Slide Tile)
-g(i) -> g(i, k) = floor(i, k) + k
-```
-
-- 前述のメモリ階層に加え，現代の計算機は並列化に関する機能を持っている。
-- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
-- CPU/GPUにも，階層構造で並列性が存在する ([1] Polyhedral Compilation in a Nutshell, Alex Zinenko)
-<!-- cmd: pause -->
-### CPU (typically 3 levels)
-
-- System threads: `n=1000`件あるデータを, n_cpu_core人で，n_cpu_core分割して，分担する。
-- Vector Level: n=250件あるデータを，`(n/simd_width)`人で，`simd_width`分割して，並列化する。(e.g.: `SIMD (Single Instruction Multiple Data)`)
-- Instruction Level: 命令レベルパイプライン Overlapを考慮してスケジュールするとか (自分は詳しくないしDL Compilerのレベルでは一般にここまでやらない)
-<!-- cmd: pause -->
-## GPU (typically 2~8 level)
-
-- 3 x Threads: `n=1000`件あるデータを`block_size`人で`thread_size`分割して，分担する。
-- Warps/Vectors: SIMD / Warp / SIMT
-- Instruction Level: CPUのと同じ
-<!-- cmd:end_slide -->
-
-[Part1] (5/N) 計算コスト << 通信コスト
+[Part1] (4/N) B/F比, Communication is expensive
 ===
 
 ```python
@@ -341,122 +317,110 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
         ↑ I-Cache Access         ↑ Register File Access                      ↑ Add
 ```
 
-- 現代のCPU/GPUは，B/F < 1.0である場合がほとんど (TODO: NVIDIA Example?)
-- つまり，高い演算性能に対して，メモリの性能が低いので，演算機がずっと遊んでいる状態
-- Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.
+- (!!) 「演算」より「データ移動」の方が，エネルギー的にも速度的にも大きい。
+<!-- cmd:pause -->
+- GPUは，ピーク演算性能に対してDRAM帯域が相対的に小さい。
+  - 例: NVIDIA A100 80GBはHBM帯域が約2.0 TB/sで，FP32ピークが約19.5 TFLOP/s よってハードのB/F ≈ 2.0e12 / 19.5e12 ≈ 0.10 byte/FLOP程度 [2]
+- つまり，B/Fが0.10より大きいプログラムを書くと「帯域律速」になりやすい。(TODO: Peak performane, rooflineの議論)
+<!-- cmd:pause -->
+- 例えるなら:
+  - 東京から札幌までファーストクラスの飛行機で移動したのに -> (通信)
+<!-- cmd:pause -->
+  - サイゼだけ食べて速攻帰宅する人 -> (演算)
+<!-- cmd:pause -->
+  - こういう気持ちでthroughputの議論ではよくB/Fを導入する
+
+(Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.)
 
 <!-- cmd:end_slide -->
+[Part1] (5/N) Parallelism, CPU/GPU
+===
 
-[Part1] (6/N) 並列計算のためのプログラミング言語 (DSL)
-====
+## Parallelism (並列性)
 
 ``` python
-╭────────────── ALU ───────────────────╮
-│ y = f( DATA1[ g(i) ] , DATA2[ g(j) ])│
-╰───▲───────────▲───────────▲──────────╯
-    │           │           │
-    │           │           └─ data2 (tensor / memory), accessed at g(j)
-    │           └───────────── data1 (tensor / memory), accessed at g(i)
-    └───────────────────────── f : algorithm to apply
+[ 1 2 3 4 5 ]
+(TODO: Slide Tile)
+g(i) -> g(i, k) = floor(i, k) + k
 ```
 
-``` python
-╭─────────────── memory ──────────────────╮
-│ Addr : 0   1   2   3   4   5   …        │
-│ Val  : x0  x1  x2  x3  x4  x5  …        │
-╰─────────────────────────────────────────╯
-               ▲
-            k = g(i)
-```
+- 前述のB/F比の議論に加え，現代の計算機は並列化をすることでthroughputを向上させようとしている。
+- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
+- CPU/GPUにも，階層構造で並列性が存在する ([1] Polyhedral Compilation in a Nutshell, Alex Zinenko)
+<!-- cmd: pause -->
+### CPU (typically 3 levels)
 
-<!-- cmd:pause -->
-# Data processing in general
-<!-- cmd:pause -->
-- `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
-  - データ型: char, float32, bfloat16, float8, int4, ...
-  - データ量: `[M, N]行列`
-  - 総データ量: `(M*N*size_of(float))bytes`
-<!-- cmd:pause -->
-- `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
-  - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
-  - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
-  - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
-<!-- cmd:pause -->
-- `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`) (1 FLOP)
+- System threads: `n=1000`件あるデータを, n_cpu_core人で，n_cpu_core分割して，分担する。
+- Vector Level: n=250件あるデータを，`(n/simd_width)`人で，`simd_width`分割して，並列化する。(e.g.: `SIMD (Single Instruction Multiple Data)`)
+- Instruction Level: 命令レベルパイプライン Overlapを考慮してスケジュールするとか (自分は詳しくないしDL Compilerのレベルでは一般にここまでやらない)
+<!-- cmd: pause -->
+## GPU (typically 2~8 level)
 
+- 3 x Threads: `n=1000`件あるデータを`block_size`人で`thread_size`分割して，分担する。
+- Warps/Vectors: SIMD / Warp / SIMT
+- Instruction Level: CPUのと同じ
 <!-- cmd:end_slide -->
 
-[Part1] (7/N) 並列計算のためのプログラミング言語 (DSL)
-====
-
-前述のモデルでいうと: 深層学習の計算は超規則的で簡単である
-
-深層学習でよくやる計算
-
-- Gemm
-- Conv2D (Einsum Definition)
-- Pool2d (Einsum Definition)
-- FlashAttention (Einsum Definition)
-
-- データ処理 everywhere
-
-## Data Processing in Deep Learning
-
-多分，SQLやTransactionより，ずっと単純なデータ処理を考えていると思う
-
-- 流れるデータ量は，事前にわかっている。(Offine Optimization)
-- 計算グラフは，コンパイル前に固定である (SCoP)
-- Deep Learningの場合，メモリアクセスパターンはとっても単純
-  - ほとんど全てのHPC KernelはAffineである (Paul Feautrier. 1991. Dataflow analysis of array and scalar references. Int. J. Parallel Program. 20, 1 (1991), 23ś53. https://doi.org/10.1007/ BF01407931)
-  - 経験則で言えば，99%のDeep Learning Kernelのメモリ通信はReduction, Broadcast, ElementWise
-- (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
-
-<!-- cmd:end_slide -->
 [Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
 ===
 
+
 # throughput
 
-throughput = 
+```python
+throughput = achieved FLOP/s
+```
 
-良くB/Fやメモリ帯域幅から理論値のFLOPSを計算して，それに近づくようにプログラムを最適化したりする
-
-FLOPS, B/F メモリ通信とALUの性能の比率メモリが遊んでるか演算機が遊んでるか
+Halideの先生曰く，throughputを上げるには，以下の三つを試すしかない (TODO: Source)
 
 <!-- cmd:pause -->
 ## Amount of data to be applied. (入力するデータの総量)
 <!-- cmd:pause -->
-これを減らすには，アルゴリズムを変えるか，Quantization/Pruningなどでデータ量を減らすしかない
+- 改善策:
+  - アルゴリズムを変える (e.g.: KVCacheを導入する, パラメーター数を見直す)
+  - Quantization/Pruningなどを導入する
 <!-- cmd:pause -->
-## Amount of resources to be applied (enegery, silicons) 
+## Amount of resources to be applied (費やせるリソースの総量)
 <!-- cmd:pause -->
-お金をいっぱい投入するしかない
+- 改善策:
+  - お金を投入して強いGPUをたくさん買う
 <!-- cmd:pause -->
 ## Efficiency of applying them to useful work
 <!-- cmd:pause -->
-=> これは，キャッシュなどを考慮した"良いプログラム"に書き換えることで改善できる。
-=> 計算の意味を変えず，導線だけを変える"Loop Transformation"という考え方を使う
+- 改善策: 
+  - 効率的に計算機を扱えるプログラムに書き直す。
+  - 計算の意味を壊さず，(1.) 通信を最適化し (2.) 適切に並列化した プログラムに書き換える。
+
 <!-- cmd:end_slide -->
-[Part2] (2/N) 計算機を効率良く扱うためにはどうしたらいいか？
+[Part2] (2/N) 深層学習で計算機を効率良く扱うにはどうしたらいいか？
 ===
 
-## B/F (Bytes per FLOPS)
+# A100でDeep Learning ModelをInferenceするとして・・・
+<!-- cmd:pause -->
+## 仮定
 
-``` python
-(TODO: Replace it w/ gemm)
-for i in range(N):
-  a, b = A[i], B[i] # 16 byte load
-  tmp = a + b       # 1  FLOP
-  out[i] = tmp      # 8  byte store
-```
+- パラメーターが全てHBMに存在すると仮定する。
+- 推論一回ごとにモデルを全パラメーターを読むと仮定すると，パラメーター数をそのままBとすれば良い。
+- FLOPSは適当に計算した値を使う。
+<!-- cmd:pause -->
+## 代表的なモデルのB/F
 
-### プログラムの要求 B/F
+- ResNet-50 (bfloat16, 224×224，1 image forward)
+  - B = 25,557,032 × 2 = 0.0511 GB
+  - FLOPs = 4.09 GFLOPs
+  - B/F = 0.0511GB / 4.09GF ≈ 0.0125 bytes/FLOP
+- GPT-2 (bfloat16, forward, per token inference)
+  - B = 124,337,664 × 2 = 0.2487 GB
+  - FLOPs = 0.2848 GFLOPs
+  - B/F ≈ 0.2487GB / 0.2848GF ≈ 0.873 bytes/FLOP
 
-- B/F = 24/1 = 24
+FLOPS: BatchSizeを増やす
+ところで:
+  - Gemm: B=O(N^2)/O(N^3), B/F=1/N
+  - ↑は性能を出しやすい
 
-### ハードウェアのB/F
-
-- 高々0.5とか？
+ん？なんか矛盾してきた。
+B/Fを今後の話に続けたいんだが，なぜ導入したんだっけ
 
 <!-- cmd:end_slide -->
 [Part2] (3/N) Tile
@@ -521,17 +485,85 @@ reuse
 Conv2D NCHW -> NCWH Transformation
 
 <!-- cmd:end_slide -->
-[Part3] (10/N) Memory Locality効率化 (Loop Fusion)
+[Part2] (10/N) Memory Locality効率化 (Loop Fusion)
 ===
 - Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
   - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
 <!-- cmd:end_slide -->
-[Part3] (11/N) Memory Locality効率化 (Loop Skewing)
+[Part2] (11/N) Memory Locality効率化 (Loop Skewing)
 ===
 - Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ)
 <!-- cmd:end_slide -->
+[Part3] (1/N) 並列計算のためのプログラミング言語 (DSL)
+====
 
-[Part3] (1/N) Deep Learning Compiler
+``` python
+╭────────────── ALU ───────────────────╮
+│ y = f( DATA1[ g(i) ] , DATA2[ g(j) ])│
+╰───▲───────────▲───────────▲──────────╯
+    │           │           │
+    │           │           └─ data2 (tensor / memory), accessed at g(j)
+    │           └───────────── data1 (tensor / memory), accessed at g(i)
+    └───────────────────────── f : algorithm to apply
+```
+
+``` python
+╭─────────────── memory ──────────────────╮
+│ Addr : 0   1   2   3   4   5   …        │
+│ Val  : x0  x1  x2  x3  x4  x5  …        │
+╰─────────────────────────────────────────╯
+               ▲
+            k = g(i)
+```
+
+<!-- cmd:pause -->
+# プログラムは，以下の3つの要素から構成される
+<!-- cmd:pause -->
+- `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
+  - データ型: char, float32, bfloat16, float8, int4, ...
+  - データ量: `[M, N]行列`
+  - 総データ量: `(M*N*size_of(float))bytes`
+<!-- cmd:pause -->
+- `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
+  - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
+  - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
+  - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
+<!-- cmd:pause -->
+- `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`) (1 FLOP)
+
+<!-- cmd:end_slide -->
+
+[Part3] (2/N) 並列計算のためのプログラミング言語 (DSL)
+====
+
+前述のモデルでいうと，深層学習の計算はかなり規則的な形に落ちやすい。(TODO: これスライドの最後に持ってくか？)
+
+``` python
+深層学習でよくやる計算の例:
+
+[GEMM]
+  C[m,n] = sum_k A[m,k] * B[k,n]
+
+[Conv2D (NCHW, simplified)]
+  O[n,co,ho,wo] = sum_{ci,kh,kw} I[n,ci,ho+kh,wo+kw] * W[co,ci,kh,kw]
+
+[Pooling (MaxPool, simplified)]
+  O[n,c,ho,wo] = max_{kh,kw} I[n,c,ho+kh,wo+kw]
+  
+[Attention (naive, per-head)]
+  S[i,j] = Q[i,:] · K[j,:]
+  P[i,j] = softmax_j S[i,j]
+  O[i,:] = sum_j P[i,j] * V[j,:]
+```
+
+- 流れるデータ量は，事前にわかっている。(Offine Optimization)
+- 計算グラフは，コンパイル前に固定である (SCoP)
+- Deep Learningの場合，メモリアクセスパターンはとっても単純
+  - 調査によれば，ほとんど全てのHPC KernelはAffineである (Paul Feautrier. 1991. Dataflow analysis of array and scalar references. Int. J. Parallel Program. 20, 1 (1991), 23ś53. https://doi.org/10.1007/ BF01407931)
+  - 経験則で言えば，99%のDeep Learning Kernelのメモリ通信はReduction, Broadcast, ElementWise
+
+<!-- cmd:end_slide -->
+[Part3] (3/N) Deep Learning Compiler
 ======
 
 (Disclaimer: この部分は本当にいろんなアプローチがあります。Halide, Tiramisu, Polyhedral Model, Tinygrad, E-Graph and Equality Saturation, etc ...)
@@ -549,7 +581,7 @@ unoptimized code -> [compiler] -> optimized code
 ```
 <!-- cmd:end_slide -->
 
-[Part3] (2/N) Schedule and Algoritm Separation, DSL
+[Part3] (4/N) Schedule and Algoritm Separation, DSL
 ===
 
 - よくないやり方？:
@@ -563,7 +595,7 @@ unoptimized code -> [compiler] -> optimized code
 次に読むと面白いかもしれない文献
 CUDAで最高速度のGemmを書くBlog
 <!-- cmd:end_slide -->
-[Part3] (2/N) Conclusion? TinygradでMetal Gemmを書いてみる
+[Part3] (5/N) Conclusion? TinygradでMetal Gemmを書いてみる
 ===
 
 Tinykitten, Tinygrad BEAM Search
@@ -575,6 +607,7 @@ TODO: ここでBEAM Searchを実演する
 ======
 
 - [1] https://pliss2019.github.io/albert_cohen_slides.pdf
+- [2] https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
 - https://microarch.org/micro52/media/dally_keynote.pdf
 - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
 - https://pliss2019.github.io/albert_cohen_slides.pdf
