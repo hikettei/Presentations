@@ -674,7 +674,7 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
   - memory bandwidth = 150 GB/s
   - 仮定: 1 GPU core ≈ 128 FP32 lanes，FMAで 2 FLOP/cycle，f ≈ 1.4 GHz とする。
   - peak FP32 ≈ (cores) * 128 * 2 * f  ≈ 14 * 128 * 2 * 1.4e9  ≈ 5.0 TFLOP/s
-  - HW B/F ≈ 150e9 / 6.4e12 ≈ 0.023 byte/FLOP
+  - HW B/F = 150e9 / 5.0e12 = 0.03 byte/FLOP
 
 ```python +exec
 DEBUG=5 BEAM=3 METAL=1 python3 -c "from tinygrad import Tensor;
