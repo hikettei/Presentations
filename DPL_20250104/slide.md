@@ -39,7 +39,7 @@ C = [[0, 0], [0, 0]] # float32
 
 <!-- cmd:pause -->
 
-# 実装例
+# 実装例 
 <!-- cmd:column_layout: [2, 2, 1] -->
 <!-- cmd:column: 0 -->
 
@@ -104,7 +104,7 @@ t=3 | S(1, 1)
 │    f             a             b      │     (total FLOP = 1)
 │ out = f(a,b) = 5             (1 FLOP) │
 ╰──┼────────────────────────────────────╯
-   │ STORE 8B                               
+   │ STORE 4B                               
    │                   
    │        ╭Memory────╮                      (total STORE = 4B)
    └───────▶︎│C[i,j] = 5│
@@ -338,14 +338,7 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 
 ## Parallelism (並列性)
 
-``` python
-[ 1 2 3 4 5 ]
-(TODO: Slide Tile)
-g(i) -> g(i, k) = floor(i, k) + k
-```
-
 - 前述のB/F比の議論に加え，現代の計算機は並列化をすることでthroughputを向上させようとしている。
-- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
 - CPU/GPUにも，階層構造で並列性が存在する ([1] Polyhedral Compilation in a Nutshell, Alex Zinenko)
 <!-- cmd: pause -->
 ### CPU (typically 3 levels)
@@ -414,50 +407,81 @@ Halideの先生曰く，throughputを上げるには，以下の三つを試す�
   - FLOPs = 0.2848 GFLOPs
   - B/F ≈ 0.2487GB / 0.2848GF ≈ 0.873 bytes/FLOP
 
-FLOPS: BatchSizeを増やす
-ところで:
-  - Gemm: B=O(N^2)/O(N^3), B/F=1/N
-  - ↑は性能を出しやすい
+## Note
 
-ん？なんか矛盾してきた。
-B/Fを今後の話に続けたいんだが，なぜ導入したんだっけ
+- B/Fを下げるには，BatchSizeを上げるという手法がよく挙げられる
+- LLM, KVCacheがやかましい
+- BytesとFLOPSの両方をバランスよく改善しないといけない。
+
+## Why
+
+- Matmul: `B=O(N^2)/O(N^3), B/F=O(1/N)`
+  - ↑は性能を出しやすい (速度が出ないのは，プログラムが悪いから) = Compute Bound
+- Activation/LayerNorm/Softmax: `B=O(N)/O(N)` B/F=O(1.0)`
+  - ↑は性能を出しにくい (速度が出ないのは，ハードウェアが悪いから) = Memory Bound
 
 <!-- cmd:end_slide -->
-[Part2] (3/N) Tile
+[Part2] (3/N) What is tile?
 ===
+例: 100x100の2次元の画像を処理する行列演算を考える。
+
+<!-- cmd:column_layout: [1, 1] -->
+<!-- cmd:column: 0 -->
 
 ``` python
-for i in range(1000):
-  S(i)
-==>
+# Before Tiling
 for i in range(100):
-  for j in range(10):
-    S(10*i+j)
+  for j in range(100):
+    S(i, j)
+# ⇩ 全く同じ意味のプログラムに書き換える
+# After Tiling
+for i_outer in range(10):    # } Outer
+  for j_outer in range(10):  # } Outer
+    for i_inner in range(10):    # } Inner
+      for j_inner in range(10):  # } Inner
+        S(10*i_outer+i_inner, 10*j_outer+j_inner)
 ```
 
-- 床のタイルとかと同じ意味
-- 100x100の長方形は，10x10のタイル100枚敷き詰めている
+<!-- cmd:column: 1 -->
 
+![](./tiling_100x100.png)
+
+(https://salient-imagenet.cs.umd.edu/explore/class_281/feature_309.html)
+
+<!-- cmd:reset_layout -->
+
+- 便利なのでTileというループ変形を導入する:
+  - e.g.: 100x100の画像について，10x10の小さい正方形(Tile)を作成して，Tileごとに計算をする
+  - Tileは1次元，2次元，n次元の座標系で存在する。
+- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
+
+<!-- cmd:end_slide -->
+[Part2] (4/N) Memory Locality効率化 (Cache)
+===
+
+1回通信すると10回計算で利用される (理想論)
+実際には，SRAMのようなメモリ容量は小さい :(
+だから，Cacheして，理論値のB/Fに近づけないといけない。
+
+Compute-Boundな演算に対して，Tilingは効率的に動作する
 <!-- cmd:end_slide -->
 [Part2] (4/N) 並列化 (Loop Parallelize for CPU)
 ===
-
+各タイルについて，並列化を割り当てる
 (TODO: Polyhedral Compilerを用いて説明する)
 <!-- cmd:end_slide -->
 
 [Part2] (5/N) 並列化 (Loop Parallelize for GPU)
 ===
-
+各タイルについてBlock/Threadを割り当てる
 (TODO: Polyhedral Compilerを用いて説明する)
 
 <!-- cmd:end_slide -->
-
 [Part2] (6/N) 並列化 (Strip-Mine, SIMD)
 ===
-
+各タイルについて，内側のBankをSinkする(Strip-Mine)
 (SIMT, Warp)
 TensorCore: 4x4 TileとかでA@B=Cを計算する
-
 <!-- cmd:end_slide -->
 [Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
 ===
@@ -473,13 +497,6 @@ for i in range(10*10):
 (適当なスライドを持ってくる)
 
 <!-- cmd:end_slide -->
-[Part2] (8/N) Memory Locality効率化 (Cache)
-===
-tile
-reuse
-(適当なスライドを引用する)
-
-<!-- cmd:end_slide -->
 [Part2] (9/N) Memory Locality効率化 (Interchange)
 ===
 Conv2D NCHW -> NCWH Transformation
@@ -489,10 +506,14 @@ Conv2D NCHW -> NCWH Transformation
 ===
 - Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
   - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
+- FlashAttention, ComputeBoundな演算とMemoryBoundな演算を一つのカーネルへ融合することで，ComputeBoundな演算に書き換え，B/Fを小さくする，といった説明ができる。
+- そのほかでメモリ帯域幅の性能を改善する方法といえば，Prefetchとか，128bit loadingとか，
+
 <!-- cmd:end_slide -->
 [Part2] (11/N) Memory Locality効率化 (Loop Skewing)
 ===
 - Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ)
+
 <!-- cmd:end_slide -->
 [Part3] (1/N) 並列計算のためのプログラミング言語 (DSL)
 ====
@@ -600,6 +621,8 @@ CUDAで最高速度のGemmを書くBlog
 
 Tinykitten, Tinygrad BEAM Search
 TODO: ここでBEAM Searchを実演する
+
+自分のスペックだと，M3 Pro Macだと，B/Fがaで，大体xGFLOPSくらいは出そう
 
 <!-- cmd:end_slide -->
 
