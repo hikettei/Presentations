@@ -21,10 +21,10 @@ options:
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) Introduction: 配列操作
+[Part1] (1/N) Introduction: 行列演算
 ====
 
-# 行列の要素ごとの加算を丁寧に考えてみる
+# 要素ごとの加算 (blas_saxpy where a = 1.0)
 
 Q: 2x2行列`A, B`について，`A[i, j] + B[i, j]`を計算し，その結果を`C[i, j]`に保存するプログラムを考える
 
@@ -77,7 +77,7 @@ t=3 | S(1, 1)
 
 <!-- cmd:pause -->
 
-## Pythonプログラムをよく観察してみる
+## プログラムをよく観察してみる
 
 - 合計で`2 * 2 = 4`回，計算を実行する `S(i, j): S(0, 0) -> S(0, 1) -> S(1, 0) -> S(1, 1)`
 <!-- cmd:pause -->
@@ -89,7 +89,7 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
   3. (3.)の実行結果を，`C[i, j]`へ保存する (8byte store)
 <!-- cmd:end_slide -->
-[Part1] (2/N) 計算機
+[Part1] (2/N) 計算機モデル (Memory/ALU)
 ===
 
 ```python
@@ -112,12 +112,12 @@ t=3 | S(1, 1)
 (B/F = (LOAD+STORE)/FLOP = 24)
 ```
 
-## Computer
-
 計算機を極言すると，以下の三つをするだけのマシン:
-
+<!-- cmd:pause -->
 1. **LOAD**: データをメモリから持ってくる。(`total=size_of(float)*n_element*2`)
-2. **ALU**: レジスタ上で演算する。    (1 FLOP)
+<!-- cmd:pause -->
+2. **ALU**: レジスタ上で命令を演算する。 (1 FLOP)
+<!-- cmd:pause -->
 3. **STORE**: 結果をメモリへ書き戻す。(`total=size_of(float)*n_element*2`)
 <!-- cmd:pause -->
 ## FLOP
