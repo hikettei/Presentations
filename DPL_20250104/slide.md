@@ -14,9 +14,9 @@ options:
 ======
 
 - 合計持ち時間: 30分
-  - Part1: **10分** Introduction: 深層学習のための大規模データ処理
-  - Part2: **10分** Background: 計算機を効率良く使うにはどうしたらいいか
-  - Part3: **10分** Advanced: Deep Learning Compiler
+  - Part1: **10分** Introduction: 計算機の仕組みをざっくり話す
+  - Part2: **10分** Background: 計算機を効率良く使うための話
+  - Part3: **10分** Advanced: 効率の良いコードを自動で見つける話
 - 実際にコード動かして遊びたい人へ: https://github.com/hikettei/tiny_polyhedral_compiler/blob/main/examples/polyhedral_compiler.ipynb
 
 <!-- cmd:end_slide -->
@@ -124,6 +124,7 @@ t=3 | S(1, 1)
 
 - FLOP = 一回の浮動小数点演算の単位
 - B/F = メモリ性能(Bandwidth) / ALUを呼び出した回数(FLOPS)
+  - 「1 FLOPするために，何Byte動かしたか」
 
 <!-- cmd:end_slide -->
 [Part1] (3/5) Modern Processor
@@ -327,8 +328,6 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
   - 東京から札幌までファーストクラスの飛行機で移動したのに -> (通信)
 <!-- cmd:pause -->
   - サイゼだけ食べて速攻帰宅する人 -> (演算)
-<!-- cmd:pause -->
-  - B/Fは
 
 (Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.)
 
@@ -343,14 +342,15 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 <!-- cmd: pause -->
 ### CPU (typically 3 levels)
 
-- System threads: `n=1000`件あるデータを, n_cpu_core人で，n_cpu_core分割して，分担する。
-- Vector Level: n=250件あるデータを，`(n/simd_width)`人で，`simd_width`分割して，並列化する。(e.g.: `SIMD (Single Instruction Multiple Data)`)
-- Instruction Level: 命令レベルパイプライン Overlapを考慮してスケジュールするとか (自分は詳しくないしDL Compilerのレベルでは一般にここまでやらない)
+- System threads: n=1000件あるデータを，n_cpu_core人で分担する
+- Vector Level: SIMDで，1 cycleで複数要素を処理する
+- Instruction Level: 命令レベルパイプラインの重なりを詰める
+
 <!-- cmd: pause -->
 ## GPU (typically 2~8 level)
 
 - 3 x Threads: `n=1000`件あるデータを`block_size`人で`thread_size`分割して，分担する。
-- Warps/Vectors: SIMD / Warp / SIMT
+- Warps/Vectors: SIMD / Warp / SIMT Level 並列化
 - Instruction Level: CPUのと同じ
 <!-- cmd:end_slide -->
 
@@ -364,14 +364,14 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 throughput = achieved FLOP/s
 ```
 
-Halideの先生曰く，throughputを上げるには，以下の三つを試すしかない (TODO: Source)
+throughputを上げるには，以下の三つを改善するしかない ([PLDI24] The Future of Fast Code: Giving Hardware What It Wants, https://www.youtube.com/watch?v=vU3ryvZYlkk)
 
 <!-- cmd:pause -->
 ## Amount of data to be applied. (入力するデータの総量)
 <!-- cmd:pause -->
 - 改善策:
   - アルゴリズムを変える (e.g.: KVCacheを導入する, パラメーター数を見直す)
-  - Quantization/Pruningなどを導入する
+  - Quantization/Pruning (Sparse Mixture of Experts)などを導入する
 <!-- cmd:pause -->
 ## Amount of resources to be applied (費やせるリソースの総量)
 <!-- cmd:pause -->
@@ -382,7 +382,7 @@ Halideの先生曰く，throughputを上げるには，以下の三つを試す�
 <!-- cmd:pause -->
 - 改善策: 
   - 効率的に計算機を扱えるプログラムに書き直す。
-  - 計算の意味を壊さず，(1.) 通信を最適化し (2.) 適切に並列化した プログラムに書き換える。
+  - 計算の意味を壊さず，(1.) 通信を最適化し (2.) 適切に並列化した プログラムを自動で探索する。
 
 <!-- cmd:end_slide -->
 [Part2] (2/N) 深層学習で計算機を効率良く扱うにはどうしたらいいか？
@@ -409,15 +409,17 @@ Halideの先生曰く，throughputを上げるには，以下の三つを試す�
 
 ## Note
 
-- B/Fを下げるには，BatchSizeを上げるという手法がよく挙げられる
-- LLM, KVCacheがやかましい
-- BytesとFLOPSの両方をバランスよく改善しないといけない。
+- B/Fを下げるには，BatchSizeを上げる，という手法がよく挙げられる
+- あと，量子化をする (だからLLMの量子化はみんなパラメーターの話をしている，Unlike Computer Vision)
+- LLMだと，KVCacheがあるせいでFLOPが減らないのでやっぱりやかましい
 
-## Why
+## Compute vs Memory: どっちがボトルネックか
 
-- Matmul: `B=O(N^2)/O(N^3), B/F=O(1/N)`
+- Matmul: `B/F=O(N^2)/O(N^3)=B/F=O(1/N)`
   - ↑は性能を出しやすい (速度が出ないのは，プログラムが悪いから) = Compute Bound
-- Activation/LayerNorm/Softmax: `B=O(N)/O(N)` B/F=O(1.0)`
+  -  i.e.: 理想的な状況においては，TensorCoreみたいなのを導入すれば，速度が単純に16倍とかになったりする
+<!-- cmd:pause -->
+- BatchSizeが小さいMatmul/Activation/LayerNorm/Softmax: `B/F=O(N)/O(N)=B/F=O(1.0)`
   - ↑は性能を出しにくい (速度が出ないのは，ハードウェアが悪いから) = Memory Bound
 
 <!-- cmd:end_slide -->
@@ -446,8 +448,6 @@ for i_outer in range(10):    # } Outer
 
 - 便利なのでTileというループ変形を導入する:
   - e.g.: 100x100の画像について，10x10の小さい正方形(Tile)を作成して，Tileごとに計算をする
-  - Tileは1次元，2次元，n次元の座標系で存在する。
-- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
 
 <!-- cmd:end_slide -->
 [Part2] (4/N) Memory Locality効率化 (Cache)
@@ -455,13 +455,18 @@ for i_outer in range(10):    # } Outer
 
 ![](./assets/matmul_tiling_cache_model.gif)
 
-100x100の行列演算を10x10の行列演算を100回行うって考え方にできる
+Compute Boundな演算にとって，Tile化という操作自体が，メモリの局所性を高めることにつながる。
+(note: 10x10のタイルをVRAM -> SRAMに転送してそこでgemmするみたいなイメージ)
 
-1回通信すると10回計算で利用される (理想論)
-実際には，SRAMのようなメモリ容量は小さい :(
-だから，Cacheして，理論値のB/Fに近づけないといけない。
+## Cache
 
-Compute-Boundな演算に対して，Tilingは効率的に動作する
+- CPUはDRAMから直接レジスタに読まない。間にL1/L2/L3みたいなキャッシュが挟まる。
+- メモリはcache line単位で運ばれる(典型的には64B)。連続アクセスが強い。
+- なので，「ランダムに広い範囲を触る」より「狭い範囲を順番に触る」方が速い。
+- 適当にシミュレーションを回してみた:
+  - 最適化前 B/F = 4.0
+  - 最適化後 B/F = 0.04 (!!) 
+
 <!-- cmd:end_slide -->
 [Part2] (5/N) 並列化
 ===
@@ -477,17 +482,17 @@ for i in range(100):
 # After Tiling
 for i_outer in block_idx(10):    # } Outer
   for j_outer in block_idx(10):  # } Outer
-    for i_inner in thread_idx(10):    # } Inner
-      for j_inner in thread_idxe(10): # } Inner
+    for i_inner in thread_idx(10):   # } Inner
+      for j_inner in thread_idx(10): # } Inner
         S(10*i_outer+i_inner, 10*j_outer+j_inner)
 ```
 <!-- cmd:column: 1 -->
 ![](./assets/parallel_gpu.gif)
 <!-- cmd:reset_layout -->
-- A
+- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
 <!-- cmd:end_slide -->
 
-[Part2] (6/N) SIMD化 (Strip-Mine, SIMD)
+[Part2] (6/N) SIMD化 (Strip-Mine)
 ===
 <!-- cmd:column_layout: [4, 4] -->
 <!-- cmd:column: 0 -->
@@ -505,9 +510,9 @@ for i in range(100):
 <!-- cmd:column: 1 -->
 ![](./assets/simd_stripmine.gif)
 <!-- cmd:reset_layout -->
-各タイルについて，内側のBankをSinkする(Strip-Mine)
-(SIMT, Warp)
-TensorCore: 4x4 TileとかでA@B=Cを計算する
+- CPUのSIMDは「1命令で複数laneを処理する」機構。AVX2だと256bitでfloat32×8要素をまとめて扱える，みたいな話。 [14][15]
+- GPUのwarpは「複数threadがlockstepで同じ命令を実行する」(SIMT)で，見た目はSIMDに近い。 [7]
+- Compute BoundなMatmulを最適化するために，Intel AMXやNVIDIAなんかはTensor Coreという演算を持っている (4x4のGemmを1cycleで計算) B/Fが小さいので，ALUを改善すれば単純に16倍早くなる
 <!-- cmd:end_slide -->
 [Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
 ===
@@ -521,25 +526,69 @@ for i in range(10*10):
   S(i mod 10, i // 10)
 ```
 
-(SKIP)
+(眠くてスライド作れなかったのでSKIP)
+
+Transaction単位で同じCacheを読むようにしようね，的な話
 
 <!-- cmd:end_slide -->
 [Part2] (8/N) Memory Locality効率化 (Interchange)
 ===
 
-(SKIP)
+(眠くてスライド作れなかったのでSKIP)
 
 - Conv2D NCHW -> NCWH Transformation
+- Cache Lineにうまく乗せるためにメモリレイアウトを考えようね，という話
 
 <!-- cmd:end_slide -->
 [Part2] (9/N) Memory Locality効率化 (Loop Fusion)
 ===
-- Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
-  - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
-- FlashAttention, ComputeBoundな演算とMemoryBoundな演算を一つのカーネルへ融合することで，ComputeBoundな演算に書き換え，B/Fを小さくする，といった説明ができる。
-- そのほかでメモリ帯域幅の性能を改善する方法といえば，Prefetchとか，128bit loadingとか，
+
+``` python
+for i in range(N):
+  B[i] = sin(A[i]) #    4B LOAD, 1 FLOP, 4B STORE
+for i in range(N): #  
+  C[i] = sin(B[i]) # +) 4B LOAD 1 FLOP,  4B STORE
+# ==>                -------------------------
+for i in range(N):      #  (Before)  16B, 1 FLOP
+  C[i] = sin(sin(A[i])) #  (After)   8B,  1 FLOP
+```
+
+- 二つのループで計算しているものを一つのループに融合することで，LOAD/STOREを削除する。
+- 代表例がFlashAttention。
+  - Matmul + Softmax + Matmul を，SRAMに収まるタイルで処理し，HBMへのread/writeを減らす，というIO-aware設計として説明される。 [9]
+  - - なので，Fusionは「ComputeBoundとMemoryBoundを混ぜて，結果としてHBM往復を減らす」ための手段になる [9][12]
+- その他で帯域を詰める手段:
+  - Prefetch，ベクトル幅の広いロード(例: 128bit/256bit)，coalescingなど
+- ちなみに，コスト関数付きLoop Fusionを自動で求めるのは最適化問題としてNP-Hardになることが知られている。[11]
+- Loop Fusion プログラムの並列性とのTrade-Off :(
 <!-- cmd:end_slide -->
-[Part3] (1/N) 並列計算のためのプログラミング言語 (DSL)
+[Part2] (10/10) Scheduling Language
+===
+
+<!-- cmd:column_layout: [2, 4] -->
+<!-- cmd:column: 0 -->
+![](./assets/tiramisu.png)
+
+(Figure: Tiramisu言語のスケジュール一覧の例)
+<!-- cmd:column: 1 -->
+```python
+╭──────────────╮     schedule s₁      ╭──────────────╮
+│  P₀ (math)   │ ───────────────────▶ │  P₁ (same)   │
+│  正しい答え  │                      │  正しい答え  │
+╰──────┬───────╯                      ╰──────┬───────╯
+       │ 依存 (R/W) を解析                   │ 実測
+       ▼                                     ▼
+  legality(P₁) ?                         score(P₁)
+       │
+       ├─ no  → reject（壊れるので捨てる）
+       └─ yes → keep（候補に残す）
+
+同じことを繰り返して，{P_k} の中から一番速いものを選ぶ。
+
+```
+<!-- cmd:reset_layout -->
+<!-- cmd:end_slide -->
+[Part3] (1/4) 並列計算のためのプログラミング言語 (DSL)
 ====
 
 ``` python
@@ -578,10 +627,10 @@ for i in range(10*10):
 
 <!-- cmd:end_slide -->
 
-[Part3] (2/N) 並列計算のためのプログラミング言語 (DSL)
+[Part3] (2/4) 並列計算のためのプログラミング言語 (DSL)
 ====
 
-前述のモデルでいうと，深層学習の計算はかなり規則的な形に落ちやすい。(TODO: これスライドの最後に持ってくか？)
+前述のモデルでいうと，深層学習の計算はかなり規則的な形に落ちやすい。
 
 ``` python
 深層学習でよくやる計算の例:
@@ -604,49 +653,35 @@ for i in range(10*10):
 - 流れるデータ量は，事前にわかっている。(Offine Optimization)
 - 計算グラフは，コンパイル前に固定である (SCoP)
 - Deep Learningの場合，メモリアクセスパターンはとっても単純
-  - 調査によれば，ほとんど全てのHPC KernelはAffineである (Paul Feautrier. 1991. Dataflow analysis of array and scalar references. Int. J. Parallel Program. 20, 1 (1991), 23ś53. https://doi.org/10.1007/ BF01407931)
-  - 経験則で言えば，99%のDeep Learning Kernelのメモリ通信はReduction, Broadcast, ElementWise
+- - 調査によれば，ほとんど全てのHPC KernelはAffineである (Paul Feautrier. 1991. Dataflow analysis of array and scalar references. Int. J. Parallel Program. 20, 1 (1991), 23ś53. https://doi.org/10.1007/ BF01407931)
+- 典型的には全てReduction / Broadcast / ElementWiseの組み合わせ。
 
 <!-- cmd:end_slide -->
-[Part3] (3/N) Deep Learning Compiler
+[Part3] (3/4) Deep Learning Compiler
 ======
 
-(Disclaimer: この部分は本当にいろんなアプローチがあります。Halide, Tiramisu, Polyhedral Model, Tinygrad, E-Graph and Equality Saturation, etc ...)
+(ちなみにこの部分はいろんな系統のアプローチが存在する)
+- Halide / TVM / SGLang / TileLang (Halide IRベースの手法たち)
+- Polyhedral Model / Tiramisu / Huawei AKG (Polyhedral IRベースの手法)
+- Tinygrad (独自IRベースの手法)
+- E-Graph and Equality Saturation (Rewriting Ruleの同型グラフの重ね合わせを持っておいて，cost functionを最小化するpathを求めるみたいな手法)
 
-- 計算機を効率良く扱うには，二つのアプローチがある。
-  - ハードウェア側を最適化する (クロック数を上げる，プロセスルール微細化，Systolic Array, ...)
-  - ソフトウェア側を最適化する (前述の最適化をうまく使ったコードを生成する)
-- 自分はソフトウェア側を最適化したいと思った。
-- Compiler:
-``` python
-unoptimized code -> [compiler] -> optimized code
-    ↑                                  ↑
-    ------------------------------------
-     Problem: この過程で，コードが正しいことをどうやって保証するか？
+<!-- cmd:end_slide -->
+[Part3] (4/4) Tinygrad+MetalでMatmul
+===
+
+- M3 Pro (MacBook Pro, Nov 2023)
+  - GPU cores = 14
+  - memory bandwidth = 150 GB/s
+  - 仮定: 1 GPU core ≈ 128 FP32 lanes，FMAで 2 FLOP/cycle，f ≈ 1.4 GHz とする。
+  - peak FP32 ≈ (cores) * 128 * 2 * f  ≈ 14 * 128 * 2 * 1.4e9  ≈ 5.0 TFLOP/s
+  - HW B/F ≈ 150e9 / 6.4e12 ≈ 0.023 byte/FLOP
+
+```python +exec
+DEBUG=5 BEAM=3 METAL=1 python3 -c "from tinygrad import Tensor;
+N = 1024; a, b = Tensor.empty(N, N), Tensor.empty(N, N);
+(a.reshape(N, 1, N) * b.T.reshape(1, N, N)).sum(axis=2).realize()"
 ```
-<!-- cmd:end_slide -->
-
-[Part3] (4/N) Schedule and Algoritm Separation, DSL
-===
-
-- よくないやり方？:
-  - 一つのプログラミング言語で，計算の意味と最適化を両方一気にやる 
-- 二つのプログラミング言語に分割する:
-  - 計算の意味を記述する言語 (e.g.: AとBの行列積を取って，sigmoid関数を適用して。。。)
-  - 上記のプログラムを最適化する言語 (e.g.: 一つ目のループを並列化して，次のループをタイルして，...)
-- Example
-- 先行研究: BEAM Search, Ansor, AutoTVM, Tinygrad, Luminal, XLA, 
-
-次に読むと面白いかもしれない文献
-CUDAで最高速度のGemmを書くBlog
-<!-- cmd:end_slide -->
-[Part3] (5/N) Conclusion? TinygradでMetal Gemmを書いてみる
-===
-
-Tinykitten, Tinygrad BEAM Search
-TODO: ここでBEAM Searchを実演する
-
-自分のスペックだと，M3 Pro Macだと，B/Fがaで，大体xGFLOPSくらいは出そう
 
 <!-- cmd:end_slide -->
 
