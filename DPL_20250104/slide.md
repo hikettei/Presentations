@@ -32,9 +32,9 @@ Q: 2x2行列`A, B`について，`A[i, j] + B[i, j]`を計算し，その結果�
 
 ``` python
 # Inputs
-A = [[1, 2], [3, 4]]
-B = [[4, 3], [2, 1]]
-C = [[0, 0], [0, 0]]
+A = [[1, 2], [3, 4]] # float32
+B = [[4, 3], [2, 1]] # float32
+C = [[0, 0], [0, 0]] # float32
 ```
 
 <!-- cmd:pause -->
@@ -83,20 +83,56 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
 - 各Statement `S(i, j)`において，こういうことをやってそう:
 <!-- cmd:pause -->
-  1. `A[i, j]`をメモリからレジスタaへロードする
+  1. `A[i, j]`, `B[i, j]`をメモリからレジスタa/bへロードする (16byte load)
 <!-- cmd:pause -->
-  2. `B[i, j]`をメモリからレジスタbへロードする
+  2. `a+b`を計算する (1 FLOP)
 <!-- cmd:pause -->
-  3. `a+b`を計算する
+  3. (3.)の実行結果を，`C[i, j]`へ保存する (8byte store)
+<!-- cmd:end_slide -->
+[Part1] (2/N) 計算機
+===
+
+```python
+╭Memory────╮  ╭Memory────╮  ╭Memory────╮
+│ f =  +   │  │A[i,j] = 1│  │B[i,j] = 4│
+╰────┬─────╯  ╰────┬─────╯  ╰────┬─────╯
+     │ FETCH inst  │ LOAD 8B     │ LOAD 8B    (total LOAD = 16B)
+     │             │             │
+     │             │             │
+╭ALU─┼─────────────┼─────────────┼──────╮
+│    ▼             ▼             ▼      │
+│    f             a             b      │     (total FLOP = 1)
+│ out = f(a,b) = 5             (1 FLOP) │
+╰──┼────────────────────────────────────╯
+   │ STORE 8B                               
+   │                   
+   │        ╭Memory────╮                      (total STORE = 8B)
+   └───────▶︎│C[i,j] = 5│
+            ╰──────────╯            
+(B/F = (LOAD+STORE)/FLOP = 24)
+```
+
+## Computer
+
+計算機を極言すると，以下の三つをするだけのマシン:
+
+1. **LOAD**: データをメモリから持ってくる。(`total=size_of(float)*n_element*2`)
+2. **ALU**: レジスタ上で演算する。    (1 FLOP)
+3. **STORE**: 結果をメモリへ書き戻す。(`total=size_of(float)*n_element*2`)
 <!-- cmd:pause -->
-  4. (3.)の実行結果を，`C[i, j]`へ保存する
+## FLOP
+- 一回の浮動小数点演算の単位
+<!-- cmd:pause -->
+## B/F (Bytes per FLOP)
+- B/F メモリ性能 vs 演算性能
+
 <!-- cmd:end_slide -->
 
 [Part1] (3/N) Introduction: データ処理
 ====
 
 ``` python
-╭────────────── algorithm ─────────────╮
+╭────────────── ALU ───────────────────╮
 │ y = f( DATA1[ g(i) ] , DATA2[ g(j) ])│
 ╰───▲───────────▲───────────▲──────────╯
     │           │           │
@@ -106,8 +142,7 @@ t=3 | S(1, 1)
 ```
 
 ``` python
-[DATA]
-╭──────────── memory / tensor ────────────╮
+╭─────────────── memory ──────────────────╮
 │ Addr : 0   1   2   3   4   5   …        │
 │ Val  : x0  x1  x2  x3  x4  x5  …        │
 ╰─────────────────────────────────────────╯
@@ -115,25 +150,31 @@ t=3 | S(1, 1)
             k = g(i)
 ```
 
-# Data Processing in general
-  
+<!-- cmd:pause -->
+# Data processing in general
+<!-- cmd:pause -->
 - `DATA`: 計算したいデータがある (e.g.: NN Parameter Weight, 口座残高，年齢，etc ...)
-  - データ型 (e.g.: 小数点，文字列, Boolean)
+  - データ型: float32 (8byte), int64 (16byte)
+  - データ量: [M, N]行列
+  - 総通信量: `データ型 * データ量`: `(M*N*size_of(float32))bytes` (e.g.: float32型のMN行列)
 <!-- cmd:pause -->
 - `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
   - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
   - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
   - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
 <!-- cmd:pause -->
-- `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`)
+- `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`) (1 FLOP)
 
 <!-- cmd:end_slide -->
 
 [Part1] (4/N) Introduction: 深層学習におけるデータ処理
 ====
 
+前述のモデルでいうと: 深層学習の計算は超規則的で簡単である
+
 深層学習でよくやる計算
 
+- Gemm
 - Conv2D (Einsum Definition)
 - Pool2d (Einsum Definition)
 - FlashAttention (Einsum Definition)
@@ -156,16 +197,8 @@ t=3 | S(1, 1)
 
 <!-- cmd:end_slide -->
 
-[Part1] (5/N) Introduction: CPU/GPU
-
-適当に図を持ってくる
-- Apple M3, Intel, AMD
-- TODO: N段階の並列性
-
-<!-- cmd:end_slide -->
-
-[Part1] (6/N) 計算機のアーキテクチャ
-======
+[Part1] (5/N) 計算機のアーキテクチャ
+====
 
 (Disclaimer: 僕はプロの半導体屋さんではありません ...)
 
@@ -205,7 +238,7 @@ t=3 | S(1, 1)
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 
-[Part1] (6/N) 計算機のアーキテクチャ
+[Part1] (5/N) 計算機のアーキテクチャ
 ======
 
 (Disclaimer: 僕はプロの半導体屋さんではありません ...)
@@ -253,7 +286,7 @@ t=3 | S(1, 1)
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 
-[Part1] (6/N) 計算機のアーキテクチャ
+[Part1] (5/N) 計算機のアーキテクチャ
 ======
 
 (Disclaimer: 僕はプロの半導体屋さんではありません ...)
@@ -301,25 +334,64 @@ t=3 | S(1, 1)
                         ╰──────╯
 ```
 
+- (Ref: https://microarch.org/micro52/media/dally_keynote.pdf)
+
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
-[Part1] (7/N) GPUの特性1: Communication is expensive
+[Part1] (6/N) Introduction: CPU/GPU
 ===
-TODO: 引用
+前述のスライドを持ってきた上で:
+- CPU: 2段階での並列性
+- GPU: n段階での並列性，VRAM/SRAM
+
 <!-- cmd:end_slide -->
-[Part1] (8/N) GPUの特性2: ALU <<< Memory
+[Part1] (7/N) 計算コスト << 通信コスト
 ===
-TODO: 引用
+
+```python
+╭───────────────────────────╮  ╭───────────────────────────╮  ╭───────────────────────────╮
+│          Integer          │  │            FP             │  │        Memory (64bit)     │
+├───────────────────────────┤  ├───────────────────────────┤  ├───────────────────────────┤
+│ Add                       │  │ FAdd                      │  │ Cache                     │
+│   8  bit   0.03 pJ        │  │   16 bit   0.4 pJ         │  │   8KB      10  pJ         │
+│   32 bit   0.1  pJ        │  │   32 bit   0.9 pJ         │  │   32KB     20  pJ         │
+│                           │  │                           │  │   1MB      100 pJ         │
+│ Mult                      │  │ FMult                     │  │ DRAM    1.3–2.6 nJ        │
+│   8  bit   0.2  pJ        │  │   16 bit   1   pJ         │  │                           │
+│   32 bit   3    pJ        │  │   32 bit   4   pJ         │  │                           │
+╰───────────────────────────╯  ╰───────────────────────────╯  ╰───────────────────────────╯
+
+
+Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ I-Cache Access 25pJ │ RegFile Access 6pJ │   Control (rest) ≈ 39pJ   │  Add  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+        ↑ I-Cache Access         ↑ Register File Access                      ↑ Add
+```
+
+- Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.
+
 <!-- cmd:end_slide -->
 [Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
 ===
 
-前述の通り，キャッシュなどを考慮しないとGPUはパフォーマンスが出ない
+## FLOP
+## B/F (Bytes per FLOPS)
 
-=> N=10^100とかまでデータが増えたら？
-=> Gemmのような，Memory-Intensiveな演算はどうする？
-=> 一回のALUを呼び出すのにSSDから10回呼び出す
-=> 一回のALUを呼び出すのにL3から10回呼び出す
+``` python
+for i in range(N):
+  a, b = A[i], B[i] # 16 byte load
+  tmp = a + b       # 1  FLOP
+  out[i] = tmp      # 8  byte store
+```
+
+### プログラムの要求 B/F
+
+- B/F = 24/1 = 24
+
+### ハードウェアのB/F
+
+- 高々0.5とか？
 
 # throughput-oriented metrics: (TODO: 引用)
 
@@ -436,9 +508,9 @@ unoptimized code -> [compiler] -> optimized code
 次に読むと面白いかもしれない文献
 CUDAで最高速度のGemmを書くBlog
 <!-- cmd:end_slide -->
-[Part3] (2/N) Conclusion? HalideでGemmを書いてみる
+[Part3] (2/N) Conclusion? TinygradでMetal Gemmを書いてみる
 ===
-
+Tinykitten
 <!-- cmd:end_slide -->
 
 参考文献
