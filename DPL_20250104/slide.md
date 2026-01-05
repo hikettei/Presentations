@@ -87,7 +87,7 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
   3. (3.)の実行結果を，`C[i, j]`へ保存する (8byte store)
 <!-- cmd:pause -->
-- ここで，[プログラム] - (Compile) -> [ PC(計算機) ] -> 答え，と言うことをした。
+- [プログラム] - (Compile) -> [ PC(計算機) ] -> 答え
 <!-- cmd:end_slide -->
 [Part1] (2/N) 計算機 (Memory/ALU)
 ===
@@ -463,32 +463,28 @@ for i in range(N):
 [Part2] (3/N) Tile
 ===
 
+``` python
+for i in range(1000):
+  S(i)
+==>
+for i in range(100):
+  for j in range(10):
+    S(10*i+j)
+```
+
 - 床のタイルとかと同じ意味
 - 100x100の長方形は，10x10のタイル100枚敷き詰めている
-
-要素間の依存関係, Tile操作, Polyhedral Model
-
-- 1000あるデータを100人で分割して同時に作業する (=重要な操作，Tileの定義)
-- 集約(aggregation)する
-- ここで，同時に作業する人の順番をランダムにシャッフルしても壊れない = プログラムは並列である！ Coincidenceの数学的定義
-- 実際は
-- 10000件あるデータを(a1, a2, ..., a100)さんで100分割して，一人当たり100件作業する = (block, thread) = (100, 100)
-- (a1, a2, ..., a100)さんはそれを下請け業者(b1, b2)に業務委託する = WarpLevel
-- Tile操作の考え方は，GPU Kernelを最適化する上でとても基本的な事項 (現在最も広く使われているLLM Inference Server, SGLangのバックエンドのコンパイラは"TileLang"って名前だったりする)
-
-ここから抽出されたGPU Kernelの要素
-=> メモリアクセスの依存関係 (RaW/WaW/WaR)
-=> スケジュールの合法性 (legality)
-=> スケジュールの並列性 (coincidence)
 
 <!-- cmd:end_slide -->
 [Part2] (4/N) 並列化 (Loop Parallelize for CPU)
 ===
+
 (TODO: Polyhedral Compilerを用いて説明する)
 <!-- cmd:end_slide -->
 
 [Part2] (5/N) 並列化 (Loop Parallelize for GPU)
 ===
+
 (TODO: Polyhedral Compilerを用いて説明する)
 
 <!-- cmd:end_slide -->
@@ -502,11 +498,22 @@ TensorCore: 4x4 TileとかでA@B=Cを計算する
 <!-- cmd:end_slide -->
 [Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
 ===
+
+``` python
+for i in range(10):
+  for j in range(10):
+    S(i, j)
+<=>
+for i in range(10*10):
+  S(i mod 10, i // 10)
+```
 (適当なスライドを持ってくる)
 
 <!-- cmd:end_slide -->
 [Part2] (8/N) Memory Locality効率化 (Cache)
 ===
+tile
+reuse
 (適当なスライドを引用する)
 
 <!-- cmd:end_slide -->
@@ -536,7 +543,6 @@ Conv2D NCHW -> NCWH Transformation
 - 自分はソフトウェア側を最適化したいと思った。
 - Compiler:
 ``` python
-
 unoptimized code -> [compiler] -> optimized code
     ↑                                  ↑
     ------------------------------------
@@ -562,6 +568,8 @@ CUDAで最高速度のGemmを書くBlog
 ===
 
 Tinykitten, Tinygrad BEAM Search
+TODO: ここでBEAM Searchを実演する
+
 <!-- cmd:end_slide -->
 
 参考文献
