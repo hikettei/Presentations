@@ -21,7 +21,7 @@ options:
 
 <!-- cmd:end_slide -->
 
-[Part1] (1/N) Introduction: 行列演算
+[Part1] (1/5) Introduction: 行列演算
 ====
 
 # 要素ごとの加算 (blas_saxpy where a = 1.0)
@@ -89,7 +89,7 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
 - [プログラム(Input)] --> [ PC(計算機) ] --> [答え(Output)]
 <!-- cmd:end_slide -->
-[Part1] (2/N) 計算機 (Memory/ALU)
+[Part1] (2/5) 計算機 (Memory/ALU)
 ===
 
 ```python
@@ -126,7 +126,7 @@ t=3 | S(1, 1)
 - B/F = メモリ性能(Bandwidth) / ALUを呼び出した回数(FLOPS)
 
 <!-- cmd:end_slide -->
-[Part1] (3/N) Modern Processor
+[Part1] (3/5) Modern Processor
 ====
 
 <!-- cmd:column_layout: [2, 4] -->
@@ -175,7 +175,7 @@ t=3 | S(1, 1)
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 
-[Part1] (3/N) Modern Processor
+[Part1] (3/5) Modern Processor
 ======
 
 <!-- cmd:column_layout: [2, 4] -->
@@ -230,7 +230,7 @@ t=3 | S(1, 1)
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 
-[Part1] (3/N) Modern Processor
+[Part1] (3/5) Modern Processor
 ======
 
 <!-- cmd:column_layout: [2, 4] -->
@@ -293,7 +293,7 @@ t=3 | S(1, 1)
 
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
-[Part1] (4/N) B/F比, Communication is expensive
+[Part1] (4/5) B/F比, Communication is expensive
 ===
 
 ```python
@@ -328,12 +328,12 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 <!-- cmd:pause -->
   - サイゼだけ食べて速攻帰宅する人 -> (演算)
 <!-- cmd:pause -->
-  - こういう気持ちでthroughputの議論ではよくB/Fを導入する
+  - B/Fは
 
 (Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.)
 
 <!-- cmd:end_slide -->
-[Part1] (5/N) Parallelism, CPU/GPU
+[Part1] (5/5) Parallelism, CPU/GPU
 ===
 
 ## Parallelism (並列性)
@@ -425,9 +425,8 @@ Halideの先生曰く，throughputを上げるには，以下の三つを試す�
 ===
 例: 100x100の2次元の画像を処理する行列演算を考える。
 
-<!-- cmd:column_layout: [1, 1] -->
+<!-- cmd:column_layout: [4, 4] -->
 <!-- cmd:column: 0 -->
-
 ``` python
 # Before Tiling
 for i in range(100):
@@ -441,13 +440,8 @@ for i_outer in range(10):    # } Outer
       for j_inner in range(10):  # } Inner
         S(10*i_outer+i_inner, 10*j_outer+j_inner)
 ```
-
 <!-- cmd:column: 1 -->
-
 ![](./tiling_100x100.png)
-
-(https://salient-imagenet.cs.umd.edu/explore/class_281/feature_309.html)
-
 <!-- cmd:reset_layout -->
 
 - 便利なのでTileというループ変形を導入する:
@@ -459,26 +453,58 @@ for i_outer in range(10):    # } Outer
 [Part2] (4/N) Memory Locality効率化 (Cache)
 ===
 
+![](./assets/matmul_tiling_cache_model.gif)
+
+100x100の行列演算を10x10の行列演算を100回行うって考え方にできる
+
 1回通信すると10回計算で利用される (理想論)
 実際には，SRAMのようなメモリ容量は小さい :(
 だから，Cacheして，理論値のB/Fに近づけないといけない。
 
 Compute-Boundな演算に対して，Tilingは効率的に動作する
 <!-- cmd:end_slide -->
-[Part2] (4/N) 並列化 (Loop Parallelize for CPU)
+[Part2] (5/N) 並列化
 ===
-各タイルについて，並列化を割り当てる
-(TODO: Polyhedral Compilerを用いて説明する)
+
+<!-- cmd:column_layout: [4, 4] -->
+<!-- cmd:column: 0 -->
+``` python
+# Before Tiling
+for i in range(100):
+  for j in range(100):
+    S(i, j)
+# ⇩ 全く同じ意味のプログラムに書き換える
+# After Tiling
+for i_outer in block_idx(10):    # } Outer
+  for j_outer in block_idx(10):  # } Outer
+    for i_inner in thread_idx(10):    # } Inner
+      for j_inner in thread_idxe(10): # } Inner
+        S(10*i_outer+i_inner, 10*j_outer+j_inner)
+```
+<!-- cmd:column: 1 -->
+![](./assets/parallel_gpu.gif)
+<!-- cmd:reset_layout -->
+- A
 <!-- cmd:end_slide -->
 
-[Part2] (5/N) 並列化 (Loop Parallelize for GPU)
+[Part2] (6/N) SIMD化 (Strip-Mine, SIMD)
 ===
-各タイルについてBlock/Threadを割り当てる
-(TODO: Polyhedral Compilerを用いて説明する)
-
-<!-- cmd:end_slide -->
-[Part2] (6/N) 並列化 (Strip-Mine, SIMD)
-===
+<!-- cmd:column_layout: [4, 4] -->
+<!-- cmd:column: 0 -->
+``` python
+# Before Tiling
+for i in range(100):
+  for j in range(100):
+    S(i, j)
+# After vectorize
+for i in range(100):
+  for j_outer in range(25):
+    for j_inner in simd(4):
+       S(i, j_outer*4+j_inner)
+```
+<!-- cmd:column: 1 -->
+![](./assets/simd_stripmine.gif)
+<!-- cmd:reset_layout -->
 各タイルについて，内側のBankをSinkする(Strip-Mine)
 (SIMT, Warp)
 TensorCore: 4x4 TileとかでA@B=Cを計算する
@@ -494,26 +520,24 @@ for i in range(10):
 for i in range(10*10):
   S(i mod 10, i // 10)
 ```
-(適当なスライドを持ってくる)
+
+(SKIP)
 
 <!-- cmd:end_slide -->
-[Part2] (9/N) Memory Locality効率化 (Interchange)
+[Part2] (8/N) Memory Locality効率化 (Interchange)
 ===
-Conv2D NCHW -> NCWH Transformation
+
+(SKIP)
+
+- Conv2D NCHW -> NCWH Transformation
 
 <!-- cmd:end_slide -->
-[Part2] (10/N) Memory Locality効率化 (Loop Fusion)
+[Part2] (9/N) Memory Locality効率化 (Loop Fusion)
 ===
 - Loop Fusion (TODO: 根拠の論文を持ってくる) Which is NP-Hard problem to optimize.
   - 応用: On-the-fly reduction, FlashAttention (ざっくり言えば，Matmul+Softmax+Matmulを全てLoop Fusionした形として説明できる，Softmax安定化のコード変形に目を瞑れば)
 - FlashAttention, ComputeBoundな演算とMemoryBoundな演算を一つのカーネルへ融合することで，ComputeBoundな演算に書き換え，B/Fを小さくする，といった説明ができる。
 - そのほかでメモリ帯域幅の性能を改善する方法といえば，Prefetchとか，128bit loadingとか，
-
-<!-- cmd:end_slide -->
-[Part2] (11/N) Memory Locality効率化 (Loop Skewing)
-===
-- Stencil/Skewing (NxMの領域を三角形のタイルで埋めていく，論文どこいったっけ)
-
 <!-- cmd:end_slide -->
 [Part3] (1/N) 並列計算のためのプログラミング言語 (DSL)
 ====
@@ -635,4 +659,3 @@ TODO: ここでBEAM Searchを実演する
 - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
 - https://pliss2019.github.io/albert_cohen_slides.pdf
 
-<!-- cmd:end_slide -->
