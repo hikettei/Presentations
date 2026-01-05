@@ -81,11 +81,11 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
 - 各Statement `S(i, j)`において，こういうことをやってそう:
 <!-- cmd:pause -->
-  1. `A[i, j]`, `B[i, j]`をメモリからレジスタa/bへロードする (16byte load)
+  1. `A[i, j]`, `B[i, j]`をメモリからレジスタa/bへロードする (8byte load)
 <!-- cmd:pause -->
   2. `a+b`を計算する (1 FLOP)
 <!-- cmd:pause -->
-  3. (3.)の実行結果を，`C[i, j]`へ保存する (8byte store)
+  3. (3.)の実行結果を，`C[i, j]`へ保存する (4byte store)
 <!-- cmd:pause -->
 - [プログラム] - (Compile) -> [ PC(計算機) ] -> 答え
 <!-- cmd:end_slide -->
@@ -96,7 +96,7 @@ t=3 | S(1, 1)
 ╭Memory────╮  ╭Memory────╮  ╭Memory────╮
 │ f =  +   │  │A[i,j] = 1│  │B[i,j] = 4│
 ╰────┬─────╯  ╰────┬─────╯  ╰────┬─────╯
-     │ FETCH inst  │ LOAD 8B     │ LOAD 8B    (total LOAD = 16B)
+     │ FETCH inst  │ LOAD 4B     │ LOAD 4B    (total LOAD = 8B)
      │             │             │
      │             │             │
 ╭ALU─┼─────────────┼─────────────┼──────╮
@@ -106,10 +106,10 @@ t=3 | S(1, 1)
 ╰──┼────────────────────────────────────╯
    │ STORE 8B                               
    │                   
-   │        ╭Memory────╮                      (total STORE = 8B)
+   │        ╭Memory────╮                      (total STORE = 4B)
    └───────▶︎│C[i,j] = 5│
             ╰──────────╯            
-(B/F = (LOAD+STORE)/FLOP = 24)
+(B/F = (LOAD+STORE)/FLOP = 12)
 ```
 
 計算機を極言すると，以下の三つをするだけのマシン:
@@ -170,7 +170,6 @@ t=3 | S(1, 1)
                      │ (SMEM / REG)     │
                      ╰──────────────────╯
 ```
-(書いた後に思った: SSD -> DRAMはおかしい)
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
 
