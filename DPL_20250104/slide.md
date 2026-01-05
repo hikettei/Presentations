@@ -510,8 +510,8 @@ for i in range(100):
 <!-- cmd:column: 1 -->
 ![](./assets/simd_stripmine.gif)
 <!-- cmd:reset_layout -->
-- CPUのSIMDは「1命令で複数laneを処理する」機構。AVX2だと256bitでfloat32×8要素をまとめて扱える，みたいな話。 [14][15]
-- GPUのwarpは「複数threadがlockstepで同じ命令を実行する」(SIMT)で，見た目はSIMDに近い。 [7]
+- CPUのSIMDは「1命令で複数laneを処理する」機構。AVX2だと256bitでfloat32×8要素をまとめて扱える，みたいな話。 
+- GPUのwarpは「複数threadがlockstepで同じ命令を実行する」(SIMT)で，見た目はSIMDに近い。 
 - Compute BoundなMatmulを最適化するために，Intel AMXやNVIDIAなんかはTensor Coreという演算を持っている (4x4のGemmを1cycleで計算) B/Fが小さいので，ALUを改善すれば単純に16倍早くなる
 <!-- cmd:end_slide -->
 [Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
@@ -555,11 +555,11 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
 
 - 二つのループで計算しているものを一つのループに融合することで，LOAD/STOREを削除する。
 - 代表例がFlashAttention。
-  - Matmul + Softmax + Matmul を，SRAMに収まるタイルで処理し，HBMへのread/writeを減らす，というIO-aware設計として説明される。 [9]
-  - - なので，Fusionは「ComputeBoundとMemoryBoundを混ぜて，結果としてHBM往復を減らす」ための手段になる [9][12]
+  - Matmul + Softmax + Matmul を，SRAMに収まるタイルで処理し，HBMへのread/writeを減らす，というIO-aware設計として説明される。
+  - - なので，Fusionは「ComputeBoundとMemoryBoundを混ぜて，結果としてHBM往復を減らす」ための手段になる
 - その他で帯域を詰める手段:
   - Prefetch，ベクトル幅の広いロード(例: 128bit/256bit)，coalescingなど
-- ちなみに，コスト関数付きLoop Fusionを自動で求めるのは最適化問題としてNP-Hardになることが知られている。[11]
+- ちなみに，コスト関数付きLoop Fusionを自動で求めるのは最適化問題としてNP-Hardになることが知られている。[3]
 - Loop Fusion プログラムの並列性とのTrade-Off :(
 <!-- cmd:end_slide -->
 [Part2] (10/10) Scheduling Language
@@ -621,8 +621,6 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
 <!-- cmd:pause -->
 - `g(i)`: メモリからデータをどういう順番で読むか？ (e.g.: ランダムアクセス，規則的)
   - 例: `g(i, j) = 4i+j (Strided-Array)`, `g(i) = random(0, 4)` 
-  - Deep Learningで用いるアルゴリズムの95%は，f(i)がQuasiaffine関数であることが知られている (TODO: SOurce)
-  - (注: Quasiaffine, fがPresburger算術のclass, 要は+と*のみで表記できるaffineな関数)
 <!-- cmd:pause -->
 - `f`: 読んだデータに対してどういう処理をするか？(e.g.: `+`, `*`, `replace`) (1 FLOP)
 
@@ -691,6 +689,7 @@ N = 1024; a, b = Tensor.empty(N, N), Tensor.empty(N, N);
 
 - [1] https://pliss2019.github.io/albert_cohen_slides.pdf
 - [2] https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+- [3] “Maximizing loop parallelism and improving data locality via loop fusion ...” (https://link.springer.com/chapter/10.1007/3-540-57659-2_18)
 - https://microarch.org/micro52/media/dally_keynote.pdf
 - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
 - https://pliss2019.github.io/albert_cohen_slides.pdf
