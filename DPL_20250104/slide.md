@@ -77,8 +77,6 @@ t=3 | S(1, 1)
 
 <!-- cmd:pause -->
 
-## プログラムをよく観察してみる
-
 - 合計で`2 * 2 = 4`回，計算を実行する `S(i, j): S(0, 0) -> S(0, 1) -> S(1, 0) -> S(1, 1)`
 <!-- cmd:pause -->
 - 各Statement `S(i, j)`において，こういうことをやってそう:
@@ -88,8 +86,10 @@ t=3 | S(1, 1)
   2. `a+b`を計算する (1 FLOP)
 <!-- cmd:pause -->
   3. (3.)の実行結果を，`C[i, j]`へ保存する (8byte store)
+<!-- cmd:pause -->
+- ここで，[プログラム] - (Compile) -> [ PC(計算機) ] -> 答え，と言うことをした。
 <!-- cmd:end_slide -->
-[Part1] (2/N) 計算機モデル (Memory/ALU)
+[Part1] (2/N) 計算機 (Memory/ALU)
 ===
 
 ```python
@@ -127,6 +127,224 @@ t=3 | S(1, 1)
 - B/F メモリ性能 vs 演算性能
 
 <!-- cmd:end_slide -->
+[Part1] (3/N) Modern Processor
+====
+
+<!-- cmd:column_layout: [2, 4] -->
+<!-- cmd:column: 0 -->
+
+もう少し現代の計算機(e.g.: CPU/GPU/TPU)に近いアーキテクチャを考えてみる。
+
+計算機を構成する要素は，僕は以下の三つだと思う。
+(と昔すごい人に教わった)
+
+## Memory
+
+例: HDD/SSD, RAM, VRAM/SRAM, cache
+- サイズ: N byte
+- 帯域幅: X GB/sec
+- エネルギー a pJ/word
+- 以下の階層構造で配置する
+```
+[安くて遅くてでかいメモリ]
+         ⇩
+[高くて早くて小さいメモリ]
+```
+
+<!-- cmd:column: 1 -->
+
+```python
+            ╭────────────────────────────────────────────╮
+            │ SSD / NVMe (storage)               ~  TB   │
+            ╰────────────────────────────────────────────╯
+                           ║
+                           ║  (I/O)
+                           ║
+            ╭────────────────────────────────────────────╮
+            │ LPDDR / DRAM (main memory)         ~  GB   │
+            ╰────────────────────────────────────────────╯
+
+                ╭──────────────────────────────╮
+                │ On-chip SRAM (L2/LLC)  ~  MB │
+                ╰──────────────────────────────╯
+
+                     ╭──────────────────╮
+                     │ Local SRAM ~ KB  │
+                     │ (SMEM / REG)     │
+                     ╰──────────────────╯
+```
+(書いた後に思った: SSD -> DRAMはおかしい)
+<!-- cmd:reset_layout -->
+<!-- cmd:end_slide -->
+
+[Part1] (3/N) Modern Processor
+======
+
+<!-- cmd:column_layout: [2, 4] -->
+<!-- cmd:column: 0 -->
+
+もう少し現代の計算機(e.g.: CPU/GPU/TPU)に近いアーキテクチャを考えてみる。
+
+計算機を構成する要素は，僕は以下の三つだと思う。
+(と昔すごい人に教わった)
+
+## Memory
+
+例: HDD/SSD, RAM, VRAM/SRAM, cache
+- サイズ: N byte
+- 帯域幅: X GB/sec
+- エネルギー a pJ/word
+
+## ALU (演算装置)
+
+- Memoryから引っ張ってきた命令(e.g.: Add/Mul/Or)を，Memoryから引っ張ってきたデータに適用する装置
+
+<!-- cmd:column: 1 -->
+
+```python
+            ╭────────────────────────────────────────────╮
+            │ SSD / NVMe (storage)               ~  TB   │
+            ╰────────────────────────────────────────────╯
+                           ║
+                           ║  (I/O)
+                           ║
+            ╭────────────────────────────────────────────╮
+            │ LPDDR / DRAM (main memory)         ~  GB   │
+            ╰────────────────────────────────────────────╯
+
+                ╭──────────────────────────────╮
+                │ On-chip SRAM (L2/LLC)  ~  MB │
+                ╰──────────────────────────────╯
+
+                     ╭──────────────────╮
+                     │ Local SRAM ~ KB  │
+                     │ (SMEM / REG)     │
+                     ╰──────────────────╯
+                           
+                           
+                        ╭──────╮
+                        │ ALU  │
+                        │ F(.) │
+                        ╰──────╯
+```
+
+<!-- cmd:reset_layout -->
+<!-- cmd:end_slide -->
+
+[Part1] (3/N) Modern Processor
+======
+
+<!-- cmd:column_layout: [2, 4] -->
+<!-- cmd:column: 0 -->
+
+もう少し現代の計算機(e.g.: CPU/GPU/TPU)に近いアーキテクチャを考えてみる。
+
+計算機を構成する要素は，僕は以下の三つだと思う。
+(と昔すごい人に教わった)
+
+## Memory
+
+例: HDD/SSD, RAM, VRAM/SRAM, cache
+- サイズ: N byte
+- 帯域幅: X GB/sec
+- エネルギー a pJ/word
+
+## ALU (演算装置)
+
+- Memoryから引っ張ってきた命令(e.g.: Add/Mul/Or)を，Memoryから引っ張ってきたデータに適用する装置
+
+## チップ内ネットワーク
+
+- 配置したメモリ/演算装置をどう接続するか
+- ここに推論チップの特徴が出る (Cerebrasとか，ロマンがあって個人的に好きです: https://zenn.dev/jnst/articles/cerebras-is-my-fave)
+
+<!-- cmd:column: 1 -->
+
+```python
+            ╭────────────────────────────────────────────╮
+            │ SSD / NVMe (storage)               ~  TB   │
+            ╰────────────────────────────────────────────╯
+                           ║
+                           ║  (I/O)
+                           ║
+            ╭────────────────────────────────────────────╮
+            │ LPDDR / DRAM (main memory)         ~  GB   │
+            ╰────────────────────────────────────────────╯
+                           │  640 pJ/word
+                           ▼
+                ╭──────────────────────────────╮
+                │ On-chip SRAM (L2/LLC)  ~  MB │
+                ╰──────────────────────────────╯
+                           │   50 pJ/word
+                           ▼
+                     ╭──────────────────╮
+                     │ Local SRAM ~ KB  │
+                     │ (SMEM / REG)     │
+                     ╰──────────────────╯
+                           │   5 pJ/word
+                           ▼
+                        ╭──────╮
+                        │ ALU  │
+                        │ F(.) │
+                        ╰──────╯
+```
+
+(Energy numbers are from: https://microarch.org/micro52/media/dally_keynote.pdf)
+
+<!-- cmd:reset_layout -->
+<!-- cmd:end_slide -->
+[Part1] (4/N) Parallelism, CPU/GPU
+===
+
+## Parallelism (並列性)
+
+``` python
+[ 1 2 3 4 5 ]
+g(i) -> g(i, k) = floor(i, k) + k
+```
+
+- 前述のメモリ階層に加え，現代の計算機は並列化に関する機能を持っている。
+- 並列性とは: 互いに依存のないn件のデータをk人で分割してシャッフルして同時並行に処理すること。(n > k)
+- CPU/GPUにも，階層構造で並列性が存在する ([1] Polyhedral Compilation in a Nutshell, Alex Zinenko)
+
+### CPU (typically 3 levels)
+
+- System threads: `n=1000`件あるデータを, n_cpu_core人で，n_cpu_core分割して，分担する。
+- Vector Level: n=250件あるデータを，`(n/simd_width)`人で，`simd_width`分割して，並列化する。(e.g.: `SIMD (Single Instruction Multiple Data)`)
+- Instruction Level: 命令レベルパイプライン Overlapを考慮してスケジュールするとか (自分は詳しくないしDL Compilerのレベルでは一般にここまでやらない)
+
+## GPU (typically 2~8 level)
+
+- 3 x Threads: `n=1000`件あるデータを`block_size`人で`thread_size`分割して，分担する。
+- Warps/Vectors: SIMDなど
+- Instruction Level: CPUのと同じ
+
+<!-- cmd:end_slide -->
+[Part1] (7/N) 計算コスト << 通信コスト
+===
+
+```python
+╭───────────────────────────╮  ╭───────────────────────────╮  ╭───────────────────────────╮
+│          Integer          │  │            FP             │  │        Memory (64bit)     │
+├───────────────────────────┤  ├───────────────────────────┤  ├───────────────────────────┤
+│ Add                       │  │ FAdd                      │  │ Cache                     │
+│   8  bit   0.03 pJ        │  │   16 bit   0.4 pJ         │  │   8KB      10  pJ         │
+│   32 bit   0.1  pJ        │  │   32 bit   0.9 pJ         │  │   32KB     20  pJ         │
+│                           │  │                           │  │   1MB      100 pJ         │
+│ Mult                      │  │ FMult                     │  │ DRAM    1.3–2.6 nJ        │
+│   8  bit   0.2  pJ        │  │   16 bit   1   pJ         │  │                           │
+│   32 bit   3    pJ        │  │   32 bit   4   pJ         │  │                           │
+╰───────────────────────────╯  ╰───────────────────────────╯  ╰───────────────────────────╯
+
+
+Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ I-Cache Access 25pJ │ RegFile Access 6pJ │   Control (rest) ≈ 39pJ   │  Add  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+        ↑ I-Cache Access         ↑ Register File Access                      ↑ Add
+```
+
+- Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.
 
 [Part1] (3/N) Introduction: データ処理
 ====
@@ -196,180 +414,6 @@ t=3 | S(1, 1)
 - (余談) MLIRを用いたTransaction Compilerなんかも実際にある https://www.lingo-db.com/
 
 <!-- cmd:end_slide -->
-
-[Part1] (5/N) 計算機のアーキテクチャ
-====
-
-(Disclaimer: 僕はプロの半導体屋さんではありません ...)
-
-<!-- cmd:column_layout: [2, 4] -->
-<!-- cmd:column: 0 -->
-
-計算機を構成する要素は，僕は以下の三つだと考えている。
-
-- メモリ (storage / memory / cache)
-  - サイズ: N byte
-  - 帯域幅: X GB/sec
-  - エネルギー a pJ/word
-
-<!-- cmd:column: 1 -->
-
-```python
-            ╭────────────────────────────────────────────╮
-            │ SSD / NVMe (storage)               ~  TB   │
-            ╰────────────────────────────────────────────╯
-                           ║
-                           ║  (I/O)
-                           ║
-            ╭────────────────────────────────────────────╮
-            │ LPDDR / DRAM (main memory)         ~  GB   │
-            ╰────────────────────────────────────────────╯
-
-                ╭──────────────────────────────╮
-                │ On-chip SRAM (L2/LLC)  ~  MB │
-                ╰──────────────────────────────╯
-
-                     ╭──────────────────╮
-                     │ Local SRAM ~ KB  │
-                     │ (SMEM / REG)     │
-                     ╰──────────────────╯
-```
-
-<!-- cmd:reset_layout -->
-<!-- cmd:end_slide -->
-
-[Part1] (5/N) 計算機のアーキテクチャ
-======
-
-(Disclaimer: 僕はプロの半導体屋さんではありません ...)
-
-<!-- cmd:column_layout: [2, 4] -->
-<!-- cmd:column: 0 -->
-
-計算機を構成する要素は，僕は以下の三つだと考えている。
-
-- メモリ (storage / memory / cache)
-  - サイズ: N byte
-  - 帯域幅: X GB/sec
-  - エネルギー a pJ/word
-- ALU
-
-<!-- cmd:column: 1 -->
-
-```python
-            ╭────────────────────────────────────────────╮
-            │ SSD / NVMe (storage)               ~  TB   │
-            ╰────────────────────────────────────────────╯
-                           ║
-                           ║  (I/O)
-                           ║
-            ╭────────────────────────────────────────────╮
-            │ LPDDR / DRAM (main memory)         ~  GB   │
-            ╰────────────────────────────────────────────╯
-
-                ╭──────────────────────────────╮
-                │ On-chip SRAM (L2/LLC)  ~  MB │
-                ╰──────────────────────────────╯
-
-                     ╭──────────────────╮
-                     │ Local SRAM ~ KB  │
-                     │ (SMEM / REG)     │
-                     ╰──────────────────╯
-                           
-                           
-                        ╭──────╮
-                        │ ALU  │
-                        │ F(.) │
-                        ╰──────╯
-```
-
-<!-- cmd:reset_layout -->
-<!-- cmd:end_slide -->
-
-[Part1] (5/N) 計算機のアーキテクチャ
-======
-
-(Disclaimer: 僕はプロの半導体屋さんではありません ...)
-
-<!-- cmd:column_layout: [2, 4] -->
-<!-- cmd:column: 0 -->
-
-計算機を構成する要素は，僕は以下の三つだと考えている。
-
-- メモリ (storage / memory / cache)
-  - サイズ: N byte
-  - 帯域幅: X GB/sec
-  - エネルギー a pJ/word
-- ALU
-- チップ内ネットワーク
-
-<!-- cmd:column: 1 -->
-
-```python
-            ╭────────────────────────────────────────────╮
-            │ SSD / NVMe (storage)               ~  TB   │
-            ╰────────────────────────────────────────────╯
-                           ║
-                           ║  (I/O)
-                           ║
-            ╭────────────────────────────────────────────╮
-            │ LPDDR / DRAM (main memory)         ~  GB   │
-            ╰────────────────────────────────────────────╯
-                           │  640 pJ/word
-                           ▼
-                ╭──────────────────────────────╮
-                │ On-chip SRAM (L2/LLC)  ~  MB │
-                ╰──────────────────────────────╯
-                           │   50 pJ/word
-                           ▼
-                     ╭──────────────────╮
-                     │ Local SRAM ~ KB  │
-                     │ (SMEM / REG)     │
-                     ╰──────────────────╯
-                           │   5 pJ/word
-                           ▼
-                        ╭──────╮
-                        │ ALU  │
-                        │ F(.) │
-                        ╰──────╯
-```
-
-- (Ref: https://microarch.org/micro52/media/dally_keynote.pdf)
-
-<!-- cmd:reset_layout -->
-<!-- cmd:end_slide -->
-[Part1] (6/N) Introduction: CPU/GPU
-===
-前述のスライドを持ってきた上で:
-- CPU: 2段階での並列性
-- GPU: n段階での並列性，VRAM/SRAM
-
-<!-- cmd:end_slide -->
-[Part1] (7/N) 計算コスト << 通信コスト
-===
-
-```python
-╭───────────────────────────╮  ╭───────────────────────────╮  ╭───────────────────────────╮
-│          Integer          │  │            FP             │  │        Memory (64bit)     │
-├───────────────────────────┤  ├───────────────────────────┤  ├───────────────────────────┤
-│ Add                       │  │ FAdd                      │  │ Cache                     │
-│   8  bit   0.03 pJ        │  │   16 bit   0.4 pJ         │  │   8KB      10  pJ         │
-│   32 bit   0.1  pJ        │  │   32 bit   0.9 pJ         │  │   32KB     20  pJ         │
-│                           │  │                           │  │   1MB      100 pJ         │
-│ Mult                      │  │ FMult                     │  │ DRAM    1.3–2.6 nJ        │
-│   8  bit   0.2  pJ        │  │   16 bit   1   pJ         │  │                           │
-│   32 bit   3    pJ        │  │   32 bit   4   pJ         │  │                           │
-╰───────────────────────────╯  ╰───────────────────────────╯  ╰───────────────────────────╯
-
-
-Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ I-Cache Access 25pJ │ RegFile Access 6pJ │   Control (rest) ≈ 39pJ   │  Add  │
-╰──────────────────────────────────────────────────────────────────────────────╯
-        ↑ I-Cache Access         ↑ Register File Access                      ↑ Add
-```
-
-- Figures/Numbers are from Mark Horowitz “Computing’s Energy Problem (and what we can do about it)”, ISSCC 2014.
 
 <!-- cmd:end_slide -->
 [Part2] (1/N) 計算機を効率良く扱うためにはどうしたらいいか？
@@ -515,6 +559,8 @@ Tinykitten
 
 参考文献
 ======
+
+- [1] https://pliss2019.github.io/albert_cohen_slides.pdf
 - https://microarch.org/micro52/media/dally_keynote.pdf
 - https://www.slideshare.net/slideshow/introduction-to-polyhedral-compilation/70482946
 - https://pliss2019.github.io/albert_cohen_slides.pdf
