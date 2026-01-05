@@ -120,12 +120,9 @@ t=3 | S(1, 1)
 <!-- cmd:pause -->
 3. **STORE**: 結果をメモリへ書き戻す。(`total=size_of(float)*n_element*2`)
 <!-- cmd:pause -->
-## FLOP
-- 一回の浮動小数点演算の単位
-<!-- cmd:pause -->
-## B/F (Bytes per FLOP)
-- B/F メモリ性能 vs 演算性能
-
+## FLOP, B/F比 (Bytes per FLOP)
+- FLOP=一回の浮動小数点演算の単位
+- B/F: メモリ性能 vs 演算性能
 <!-- cmd:end_slide -->
 [Part1] (3/N) Modern Processor
 ====
@@ -421,7 +418,7 @@ Instruction Energy Breakdown (example: Add)    total ≈ 70 pJ
 
 # throughput
 
-throughput = A
+throughput = 
 
 良くB/Fやメモリ帯域幅から理論値のFLOPSを計算して，それに近づくようにプログラムを最適化したりする
 
@@ -492,21 +489,31 @@ for i in range(N):
 
 [Part2] (5/N) 並列化 (Loop Parallelize for GPU)
 ===
+(TODO: Polyhedral Compilerを用いて説明する)
 
 <!-- cmd:end_slide -->
 
 [Part2] (6/N) 並列化 (Strip-Mine, SIMD)
 ===
+
+(SIMT, Warp)
 TensorCore: 4x4 TileとかでA@B=Cを計算する
+
 <!-- cmd:end_slide -->
 [Part2] (7/N) Memory Locality効率化 (Loop Coalesce)
 ===
+(適当なスライドを持ってくる)
+
 <!-- cmd:end_slide -->
-[Part2] (8/N) Memory Locality効率化 (Tiling)
+[Part2] (8/N) Memory Locality効率化 (Cache)
 ===
+(適当なスライドを引用する)
+
 <!-- cmd:end_slide -->
 [Part2] (9/N) Memory Locality効率化 (Interchange)
 ===
+Conv2D NCHW -> NCWH Transformation
+
 <!-- cmd:end_slide -->
 [Part3] (10/N) Memory Locality効率化 (Loop Fusion)
 ===
