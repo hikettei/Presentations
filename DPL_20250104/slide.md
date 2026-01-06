@@ -415,7 +415,9 @@ throughputを上げるには，以下の三つを改善するしかない ([PLDI
 - あと，量子化をする (だからLLMの量子化はみんなパラメーターの話をしている，Unlike Computer Vision)
 - LLMだと，KVCacheがあるせいでFLOPが減らないのでやっぱりやかましい
 
-## Compute vs Memory: どっちがボトルネックか
+## Compute Bound vs Memory Bound: Roofline Model
+
+(See also: https://docs.nersc.gov/tools/performance/roofline/)
 
 - Matmul: `B/F=O(N^2)/O(N^3)=B/F=O(1/N)`
   - ↑は性能を出しやすい (速度が出ないのは，プログラムが悪いから) = Compute Bound
