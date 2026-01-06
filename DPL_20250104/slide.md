@@ -569,7 +569,8 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
 <!-- cmd:column: 0 -->
 ![](./assets/tiramisu.png)
 
-(Figure: Tiramisu言語のスケジュール一覧の例)
+(https://arxiv.org/abs/1804.10694, Table II)
+
 <!-- cmd:column: 1 -->
 ```python
 ╭──────────────╮     schedule s₁      ╭──────────────╮
@@ -584,11 +585,59 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
        └─ yes → keep（候補に残す）
 
 同じことを繰り返して，{P_k} の中から一番速いものを選ぶ。
-
 ```
 
 <!-- cmd:reset_layout -->
 <!-- cmd:end_slide -->
+# Example
+<!-- cmd:column_layout: [2, 4] -->
+<!-- cmd:column: 0 -->
+
+## Before Optimized (P0)
+
+```cpp
+// Before Optimized
+kernel void r_4_4(device float* data0, device float* data1, uint3 gid [[threadgroup_position_in_grid]], uint3 lid [[thread_position_in_threadgroup]]) {
+  int gidx0 = gid.x; /* 4 */
+  float acc0 = 0.0f;
+  for (int ridx0 = 0; ridx0 < 4; ridx0++) {
+    float val0 = *(data1+((gidx0<<2)+ridx0));
+    acc0 = (acc0+val0);
+  }
+  *(data0+gidx0) = acc0;
+}
+```
+
+<!-- cmd:column: 1 -->
+
+## After Optimized (P1)
+
+```cpp
+// After Optimized (Inlining)
+kernel void r_4_4(device float* data0, device float* data1, uint3 gid [[threadgroup_position_in_grid]], uint3 lid [[thread_position_in_threadgroup]]) {
+  int gidx0 = gid.x; /* 4 */
+  float4 val0 = *((device float4*)((data1+(gidx0<<2))));
+  *(data0+gidx0) = (val0.w+val0.z+val0.x+val0.y);
+}
+```
+
+(ref: https://mesozoic-egg.github.io/tinygrad-notes/20241203_beam.html)
+
+<!-- cmd:reset_layout -->
+<!-- cmd:pause -->
+
+## The Search
+
+``` python
+actions = [Opt(op=OptOps.UPCAST, axis=axis, amt=amt) for amt in [0,2,3,4,5,7] for axis in range(6)]
+actions += [Opt(op=OptOps.UNROLL, axis=axis, amt=amt) for amt in [0,4,7] for axis in range(5)]
+actions += [Opt(op=OptOps.LOCAL, axis=axis, amt=amt) for amt in [2,3,4,8,13,16,29] for axis in range(6)]
+actions += [Opt(op=OptOps.GROUPTOP, axis=axis, amt=amt) for amt in [13,16,28,29,32,49,64,256] for axis in range(3)]
+actions += [Opt(op=OptOps.GROUP, axis=axis, amt=amt) for amt in [0,4,8,16] for axis in range(3)]
+```
+
+<!-- cmd:end_slide -->
+
 [Part3] (1/4) 並列計算のためのプログラミング言語 (DSL)
 ====
 
@@ -666,7 +715,7 @@ for i in range(N):      #  (Before)  16B, 1 FLOP
 - E-Graph and Equality Saturation (Rewriting Ruleの同型グラフの重ね合わせを持っておいて，cost functionを最小化するpathを求めるみたいな手法)
 
 <!-- cmd:end_slide -->
-[Part3] (4/4) Tinygrad+MetalでMatmul
+[Part3] (4/4) Tinygrad+MetalでBEAM Search
 ===
 
 - M3 Pro (MacBook Pro, Nov 2023)
