@@ -406,6 +406,9 @@ throughputを上げるには，以下の三つを改善するしかない ([PLDI
   - B = 124,337,664 × 2 = 0.2487 GB
   - FLOPs = 0.2848 GFLOPs
   - B/F ≈ 0.2487GB / 0.2848GF ≈ 0.873 bytes/FLOP
+<!-- cmd:pause -->
+
+- 実際のハード(A100, B/F=0.1)と比べると, GPT2はInferenceに0.91us/token, 重みの読み込みには124.35us/tokenかかる。
 
 ## Note
 
