@@ -10,37 +10,23 @@ options:
   command_prefix: "cmd:"
 ---
 
-Agenda
-======
+# Loop Fusion Model
 
-- Item1
-- Item2
-- Item3
+## Computation Graph
 
-<!-- cmd:end_slide -->
+- ONNX Graph
+- We want to discover this automatically
 
-Section
-=======
+## Computation Order
 
-<!-- cmd:pause -->
+(e.g.: ConvND+PoolND) This is NP-Hard problem.
 
-- ._.
+Proof: https://link.springer.com/chapter/10.1007/3-540-57659-2_18
 
-<!-- cmd:end_slide -->
+## Blockbuster: Approach
 
-Two-column layout
-=================
+## My attempt: tiny_polyhedral_compiler
 
-<!-- cmd:column_layout: [3, 2] -->
+### Introduce PolyhedralShapeTracker
 
-<!-- cmd:column: 0 -->
-
-- left column
-- left column
-
-<!-- cmd:column: 1 -->
-
-```python
-# right column
-pass
-```
+### Contribution, Benefits
